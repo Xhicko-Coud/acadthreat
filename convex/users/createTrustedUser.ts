@@ -6,10 +6,7 @@ import type { GenericActionCtx } from "convex/server";
 import { components, internal } from "@convex/_generated/api";
 import type { DataModel } from "@convex/_generated/dataModel";
 import { action } from "@convex/_generated/server";
-import {
-  USER_PROFILE_ROLES,
-  type UserProfileRole,
-} from "@convex/auth/authorization";
+import { USER_PROFILE_ROLES } from "@convex/auth/authorization";
 import { createAuth, authComponent } from "@convex/auth";
 
 type CreateTrustedUserActionCtx = GenericActionCtx<DataModel>;

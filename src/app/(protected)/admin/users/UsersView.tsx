@@ -1,23 +1,83 @@
 import {
   CheckCircle2,
+  Filter,
+  Plus,
   ShieldX,
   Users,
 } from "lucide-react";
 
+import { AdminActionSheet } from "@/components/admin/AdminActionSheet";
 import { AppAlert } from "@/components/shared/AppAlert";
-import { EmptyState } from "@/components/shared/EmptyState";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { UsersDialogs } from "./UsersDialogs";
+import { UsersForm } from "./UsersForm";
+import { UsersTable } from "./UsersTable";
+import type { useUsersLogic } from "./UsersLogic";
+
+type UsersViewProps = ReturnType<typeof useUsersLogic>;
 
 export function UsersView({
   activeUsers,
+  allowOpenEditSheet,
+  allowOpenCreateSheet,
+  createUser,
+  createUserForm,
+  deactivateUser,
+  discardSheetChanges,
+  editUserForm,
+  filteredUsers,
+  getUserActions,
+  handleSheetOpenChange,
   hasAccess,
   inactiveUsers,
+  isCreating,
+  isCreateMode,
+  isDeactivating,
+  isDiscardSheetConfirmOpen,
+  isOpenEditSheetConfirmOpen,
+  isEditMode,
+  isEditSaveConfirmOpen,
+  isLoading,
+  isOpenCreateSheetConfirmOpen,
+  isReactivating,
+  isSaveCreateConfirmOpen,
+  isSheetOpen,
+  isUpdating,
+  isViewMode,
+  pendingCreateSummary,
+  pendingEditUser,
+  pendingEditSummary,
+  pendingDeactivateUser,
+  pendingReactivateUser,
+  query,
+  reactivateUser,
+  requestSaveSheet,
+  setIsDiscardSheetConfirmOpen,
+  setIsOpenEditSheetConfirmOpen,
+  setIsEditSaveConfirmOpen,
+  setIsOpenCreateSheetConfirmOpen,
+  setIsSaveCreateConfirmOpen,
+  setPendingEditUser,
+  setPendingDeactivateUser,
+  setPendingReactivateUser,
+  setQuery,
+  setStatusFilter,
+  sheetMode,
+  sheetUser,
+  statusFilter,
+  submitCreateForm,
+  submitEditForm,
   totalUsers,
-}: {
-  activeUsers: number;
-  hasAccess: boolean;
-  inactiveUsers: number;
-  totalUsers: number;
-}) {
+  updateUser,
+}: UsersViewProps) {
   const metrics = [
     {
       description: "Trusted internal user accounts in the workspace.",
@@ -88,24 +148,104 @@ export function UsersView({
         ))}
       </section>
 
-      <section className="overflow-hidden rounded-lg border border-primary/10 bg-white shadow-sm">
-        <div className="border-b border-primary/10 px-4 py-4 sm:px-6">
-          <h2 className="text-lg font-semibold text-foreground">
-            User Directory
-          </h2>
-          <p className="mt-1 text-sm text-primary/65">
-            Internal trusted user records will appear here in the next chunk.
-          </p>
-        </div>
-        <div className="p-4 sm:p-6">
-          <EmptyState
-            className="border-none shadow-none"
-            description="The users listing surface is reserved for trusted internal account management and will be connected in the next implementation step."
-            icon={Users}
-            title="User roster is preparing"
-          />
-        </div>
-      </section>
+      <UsersTable
+        actions={
+          <>
+            <Select
+              onValueChange={(value) =>
+                setStatusFilter(value as "active" | "inactive" | "all")
+              }
+              value={statusFilter}
+            >
+              <SelectTrigger className="h-10 w-full rounded-lg border-primary/20 bg-primary/[0.04] text-primary shadow-sm hover:border-primary/35 hover:bg-primary/[0.08] focus-visible:border-primary sm:w-52">
+                <Filter className="size-4 text-primary/70" />
+                <SelectValue placeholder="Filter status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border border-primary/10 shadow-xl">
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="active">Active only</SelectItem>
+                <SelectItem value="inactive">Inactive only</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => setIsOpenCreateSheetConfirmOpen(true)}
+              type="button"
+            >
+              <Plus className="size-4" />
+              Create User
+            </Button>
+          </>
+        }
+        data={filteredUsers}
+        description="All trusted internal users and their current workspace access status."
+        getUserActions={getUserActions}
+        title="User Directory"
+      />
+
+      <AdminActionSheet
+        cancelText={isViewMode ? "Close" : "Cancel"}
+        confirmText={isCreateMode ? "Create User" : "Save Changes"}
+        description={
+          isCreateMode
+            ? "Add a trusted analyst or viewer to the AcadThreat workspace."
+            : isViewMode
+              ? "Review this user's safe workspace details."
+              : "Update this user's role assignment and optional password."
+        }
+        isLoading={isCreateMode ? isCreating : isUpdating}
+        loadingText={isCreateMode ? "Creating user..." : "Saving changes..."}
+        onCancel={() => handleSheetOpenChange(false)}
+        onConfirm={requestSaveSheet}
+        onOpenChange={handleSheetOpenChange}
+        open={isSheetOpen}
+        showConfirmButton={!isViewMode}
+        title={
+          isCreateMode ? "Create user" : isViewMode ? "View user" : "Edit user"
+        }
+      >
+        <UsersForm
+          createForm={createUserForm}
+          editForm={editUserForm}
+          onCreateSubmit={submitCreateForm}
+          onEditSubmit={submitEditForm}
+          sheetMode={sheetMode}
+          sheetUser={sheetUser}
+        />
+      </AdminActionSheet>
+
+      <UsersDialogs
+        allowOpenEditSheet={allowOpenEditSheet}
+        allowOpenCreateSheet={allowOpenCreateSheet}
+        createUser={createUser}
+        deactivateUser={deactivateUser}
+        discardSheetChanges={discardSheetChanges}
+        isCreating={isCreating}
+        isDeactivating={isDeactivating}
+        isDiscardSheetConfirmOpen={isDiscardSheetConfirmOpen}
+        isOpenEditSheetConfirmOpen={isOpenEditSheetConfirmOpen}
+        isEditSaveConfirmOpen={isEditSaveConfirmOpen}
+        isOpenCreateSheetConfirmOpen={isOpenCreateSheetConfirmOpen}
+        isReactivating={isReactivating}
+        isSaveCreateConfirmOpen={isSaveCreateConfirmOpen}
+        isUpdating={isUpdating}
+        pendingCreateSummary={pendingCreateSummary}
+        pendingEditUser={pendingEditUser}
+        pendingEditSummary={pendingEditSummary}
+        pendingDeactivateUser={pendingDeactivateUser}
+        pendingReactivateUser={pendingReactivateUser}
+        reactivateUser={reactivateUser}
+        setIsDiscardSheetConfirmOpen={setIsDiscardSheetConfirmOpen}
+        setIsOpenEditSheetConfirmOpen={setIsOpenEditSheetConfirmOpen}
+        setIsEditSaveConfirmOpen={setIsEditSaveConfirmOpen}
+        setIsOpenCreateSheetConfirmOpen={setIsOpenCreateSheetConfirmOpen}
+        setIsSaveCreateConfirmOpen={setIsSaveCreateConfirmOpen}
+        setPendingEditUser={setPendingEditUser}
+        setPendingDeactivateUser={setPendingDeactivateUser}
+        setPendingReactivateUser={setPendingReactivateUser}
+        sheetUser={sheetUser}
+        updateUser={updateUser}
+      />
     </div>
   );
 }

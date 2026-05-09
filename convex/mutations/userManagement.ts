@@ -91,3 +91,43 @@ export const setUserStatus = internalMutation({
     return { status: "success" } as const;
   },
 });
+
+export const setUserRole = internalMutation({
+  args: {
+    role: v.union(
+      v.literal(USER_PROFILE_ROLES.admin),
+      v.literal(USER_PROFILE_ROLES.analyst),
+      v.literal(USER_PROFILE_ROLES.viewer),
+    ),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (lookup) => lookup.eq("userId", args.userId))
+      .unique();
+
+    if (!profile) {
+      return { status: "not_found" } as const;
+    }
+
+    if (args.role === USER_PROFILE_ROLES.admin) {
+      return { status: "unsupported_role_creation" } as const;
+    }
+
+    if (profile.role === args.role) {
+      return { status: "unchanged" } as const;
+    }
+
+    if (profile.role === USER_PROFILE_ROLES.admin) {
+      return { status: "unsupported_role_creation" } as const;
+    }
+
+    await ctx.db.patch(profile._id, {
+      role: args.role,
+      updatedAt: Date.now(),
+    });
+
+    return { status: "success" } as const;
+  },
+});

@@ -962,6 +962,24 @@ use-notifications.ts
 
 ---
 
+# 17.5 Form Validation Rule
+
+All newly created forms and any materially rebuilt forms must use `react-hook-form` with `zod` validation through `zodResolver`.
+
+Rules:
+
+1. Colocate or clearly pair each form with an explicit `zod` schema.
+2. Use `react-hook-form` for form state, validation, submission, and dirty-state tracking.
+3. Use `zodResolver` for schema-backed validation.
+4. Required forms must not allow empty submission.
+5. Confirmation dialogs must open only after schema validation passes.
+6. Pure form components must remain presentational and must not call backend APIs directly.
+7. Submit handlers, mutation calls, confirmation state, and discard state must stay in the feature Logic layer.
+8. If a form uses a sheet, dialog, or footer action button outside the `<form>`, wire it so it still submits through the `react-hook-form` handler.
+9. If the required form dependencies are missing, state the package requirement and get approval before installing them.
+
+---
+
 # 18. Reuse Rule
 
 Before creating anything new:
