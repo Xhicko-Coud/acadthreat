@@ -1,8 +1,12 @@
 "use client";
 
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
+import { ConvexReactClient } from "convex/react";
 import { useState } from "react";
 
+import { AuthBridgeProvider } from "@/components/providers/AuthBridgeProvider";
+import { NotificationProvider } from "@/components/providers/NotificationProvider";
+import { authClient } from "@/lib/auth-client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function Providers({
@@ -23,8 +27,12 @@ export function Providers({
   });
 
   return (
-    <ConvexProvider client={convex}>
-      <TooltipProvider>{children}</TooltipProvider>
-    </ConvexProvider>
+    <ConvexBetterAuthProvider authClient={authClient} client={convex}>
+      <AuthBridgeProvider>
+        <NotificationProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </NotificationProvider>
+      </AuthBridgeProvider>
+    </ConvexBetterAuthProvider>
   );
 }

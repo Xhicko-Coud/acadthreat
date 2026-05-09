@@ -791,6 +791,15 @@ UI → Container → Logic → Convex/API → DB
 
 Do not patch symptoms.
 
+For stateful UI, auth flows, overlays, loaders, dropdowns, dialogs, and navigation-driven behavior:
+
+1. trace ownership of the relevant state
+2. trace where the component mounts and unmounts
+3. trace what happens across route changes
+4. compare the full working lifecycle with the reference before extracting state to a new provider or shared component
+
+Do not jump into a fix before understanding the end-to-end lifecycle.
+
 ---
 
 ## 15.1 Localized Debugging Exception
@@ -863,6 +872,93 @@ Rules:
 
 4. Relative imports are allowed only for files in the same directory when clearer.
 5. Keep imports consistent with `tsconfig.json` and `convex/tsconfig.json`.
+
+---
+
+# 17.1 Interactive Cursor Rule
+
+All interactive controls that users are expected to click or tap must use the pointer cursor.
+
+Rules:
+
+1. Apply `cursor-pointer` to buttons, links styled as buttons, toggles, selects, menu triggers, clickable icons, and similar interactive controls.
+2. Do not leave clickable UI with the default text or arrow cursor unless the control is disabled.
+3. Disabled controls should keep a non-interactive cursor state when appropriate.
+4. Check interactive cursor behavior during UI updates, not only visual styling.
+
+---
+
+# 17.2 Reference Project Parity Rule
+
+When using the SCPC reference for an approved feature, the agent must follow the working reference pattern exactly where relevant.
+
+Rules:
+
+1. Compare the exact working SCPC implementation pattern before changing code.
+2. Match the reference implementation pattern exactly where relevant.
+3. Only adapt what must differ for AcadThreat-specific branding, routes, roles, module scope, or intentionally excluded features.
+4. Do not invent hardening changes, alternative wiring, or different implementation patterns unless the reference cannot apply because of AcadThreat-specific constraints.
+5. If deviating from the reference, state why before implementing.
+6. Do not copy unrelated SCPC domain logic such as identity, QR, token, payment, certificate, MFA, OTP, step-up, or verification logic unless explicitly approved for AcadThreat.
+7. Do not add future-module features early.
+8. No public registration is allowed.
+9. Auth users are created internally by trusted admin or seed flows.
+10. Sensitive values must never be committed, logged, printed, or pasted into chat.
+11. For Better Auth with Convex comparisons, include `convex/http.ts` and do not compare only `auth-client`, `auth-server`, and `route.ts`.
+
+---
+
+# 17.3 Convex Better Auth HTTP Router Rule
+
+Any project using Better Auth with Convex and Next.js must include `convex/http.ts`.
+
+Rules:
+
+1. `convex/http.ts` must create and export a Convex HTTP router.
+2. Better Auth routes must be registered on that HTTP router.
+3. If `/api/auth/get-session` or `/api/auth/sign-in/email` returns `404`, test the direct Convex site URL:
+
+```txt
+https://<deployment>.convex.site/api/auth/get-session
+```
+
+4. If the direct `.site` URL says `This Convex deployment does not have HTTP actions enabled`, the likely missing piece is `convex/http.ts`.
+5. When using SCPC as a reference, compare `convex/http.ts` against the working project.
+6. Verify both:
+
+```txt
+NEXT_PUBLIC_CONVEX_URL           → matching .convex.cloud URL
+NEXT_PUBLIC_CONVEX_SITE_URL      → matching .convex.site URL
+```
+
+7. Do not keep debugging seed, password, or login UI behavior until HTTP actions are confirmed working.
+8. Do not expose env values, secrets, cookies, tokens, or passwords.
+
+---
+
+# 17.4 Auth Bridge Loader Rule
+
+When using the SCPC reference for authentication UX, include the sign-in and sign-out bridge loader pattern where relevant.
+
+Rules:
+
+1. Successful sign-in should queue the safe post-navigation notification first, then show the sign-in bridge loader, then redirect.
+2. Sign-out should show the sign-out bridge loader as soon as logout begins and keep it visible until redirect or failure.
+3. If sign-in or sign-out fails, the bridge loader must hide and existing safe error handling must continue.
+4. Bridge loaders must be full-screen, accessible, and use safe status messaging only.
+5. Bridge loaders must not expose auth internals, raw errors, cookies, tokens, passwords, or backend details.
+6. Bridge loaders should follow the SCPC `AuthGateBackdrop` and centered status-card pattern, adapted to AcadThreat branding and green accent styling.
+7. When comparing SCPC auth UX, include:
+
+```txt
+landing-auth-form.tsx
+sign-out-button.tsx
+auth-gate-backdrop.tsx
+notification-provider.tsx
+use-notifications.ts
+```
+
+8. Do not remove or weaken safe notification-after-navigation behavior when adding bridge loaders.
 
 ---
 

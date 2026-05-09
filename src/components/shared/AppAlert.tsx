@@ -1,9 +1,12 @@
+"use client";
+
 import {
   CheckCircle2Icon,
   CircleXIcon,
   InfoIcon,
   TriangleAlertIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import {
   Alert,
@@ -13,12 +16,14 @@ import {
 import { cn } from "@/lib/utils";
 
 type AppAlertVariant = "success" | "info" | "warning" | "error";
+type AppAlertPlacement = "inline" | "top-center";
 
 type AppAlertProps = {
   variant: AppAlertVariant;
   title: string;
   description?: string;
   className?: string;
+  placement?: AppAlertPlacement;
 };
 
 const variantStyles: Record<AppAlertVariant, string> = {
@@ -43,8 +48,53 @@ export function AppAlert({
   title,
   description,
   className,
+  placement = "inline",
 }: AppAlertProps) {
   const Icon = variantIcons[variant];
+  const [isHovered, setIsHovered] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, [description, placement, title, variant]);
+
+  useEffect(() => {
+    if (placement !== "top-center" || isHovered || !isVisible) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsVisible(false);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isHovered, isVisible, placement]);
+
+  if (placement === "top-center") {
+    if (!isVisible) {
+      return null;
+    }
+
+    return (
+      <div className="cursor-pointer fixed inset-x-0 top-4 z-50 flex justify-center px-4 sm:top-6">
+        <Alert
+          className={cn(
+            "pointer-events-auto w-full max-w-md shadow-lg",
+            variantStyles[variant],
+            className,
+          )}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <Icon className="size-4" />
+          <AlertTitle>{title}</AlertTitle>
+          {description ? <AlertDescription>{description}</AlertDescription> : null}
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <Alert className={cn(variantStyles[variant], className)}>

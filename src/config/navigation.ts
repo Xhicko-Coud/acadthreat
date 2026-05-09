@@ -5,6 +5,7 @@ import {
   ListFilterIcon,
   ShieldAlertIcon,
   SlidersHorizontalIcon,
+  UsersIcon,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -24,6 +25,13 @@ export const adminNavigation: NavigationItem[] = [
     label: "Dashboard",
     description: "Foundation shell",
     matchPaths: ["/admin/dashboard"],
+  },
+  {
+    href: "/admin/users",
+    icon: UsersIcon,
+    label: "Users",
+    description: "Trusted workspace access",
+    matchPaths: ["/admin/users"],
   },
   {
     href: "/admin/threats",

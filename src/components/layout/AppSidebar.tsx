@@ -34,7 +34,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="text-primary-foreground hover:bg-white/10 hover:text-primary-foreground data-[active=true]:bg-white/15 data-[active=true]:text-primary-foreground group-data-[collapsible=icon]:justify-center"
+              className="cursor-pointer text-primary-foreground hover:bg-white/10 hover:text-primary-foreground data-[active=true]:bg-white/15 data-[active=true]:text-primary-foreground group-data-[collapsible=icon]:justify-center"
               size="lg"
             >
               <Link href="/admin/dashboard">
@@ -94,7 +94,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
-                      className="text-primary-foreground hover:bg-white/10 hover:text-primary-foreground focus-visible:ring-white/25 data-[active=true]:bg-white/15 data-[active=true]:text-primary-foreground"
+                      className="cursor-pointer text-primary-foreground hover:bg-white/10 hover:text-primary-foreground focus-visible:ring-white/25 data-[active=true]:bg-white/15 data-[active=true]:text-primary-foreground"
                       isActive={isActive}
                       tooltip={item.label}
                     >
