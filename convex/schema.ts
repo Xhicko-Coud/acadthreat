@@ -1,6 +1,28 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+const threatIndicatorTypeValidator = v.union(
+  v.literal("ip"),
+  v.literal("domain"),
+  v.literal("url"),
+  v.literal("hash"),
+  v.literal("email"),
+  v.literal("keyword"),
+);
+
+const threatIndicatorSeverityValidator = v.union(
+  v.literal("low"),
+  v.literal("medium"),
+  v.literal("high"),
+  v.literal("critical"),
+);
+
+const threatIndicatorStatusValidator = v.union(
+  v.literal("active"),
+  v.literal("archived"),
+  v.literal("false_positive"),
+);
+
 export default defineSchema({
   healthChecks: defineTable({
     message: v.string(),
@@ -39,4 +61,28 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_role", ["role"])
     .index("by_status", ["status"]),
+  threatIndicators: defineTable({
+    value: v.string(),
+    normalizedValue: v.string(),
+    type: threatIndicatorTypeValidator,
+    severity: threatIndicatorSeverityValidator,
+    confidence: v.number(),
+    source: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: threatIndicatorStatusValidator,
+    createdByUserId: v.string(),
+    createdByEmail: v.string(),
+    updatedByUserId: v.string(),
+    updatedByEmail: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_type", ["type"])
+    .index("by_status", ["status"])
+    .index("by_severity", ["severity"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_createdByUserId", ["createdByUserId"])
+    .index("by_updatedByUserId", ["updatedByUserId"])
+    .index("by_type_and_normalizedValue", ["type", "normalizedValue"])
+    .index("by_status_and_createdAt", ["status", "createdAt"]),
 });

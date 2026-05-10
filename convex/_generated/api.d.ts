@@ -16,8 +16,11 @@ import type * as auth_bootstrapFirstAdminInternal from "../auth/bootstrapFirstAd
 import type * as auth_logAuthDiagnostic from "../auth/logAuthDiagnostic.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
+import type * as mutations_threatIndicators from "../mutations/threatIndicators.js";
 import type * as mutations_userManagement from "../mutations/userManagement.js";
+import type * as queries_threatIndicators from "../queries/threatIndicators.js";
 import type * as queries_userManagementApi from "../queries/userManagementApi.js";
+import type * as threatIndicators_helpers from "../threatIndicators/helpers.js";
 import type * as users_createTrustedUser from "../users/createTrustedUser.js";
 import type * as users_createTrustedUserInternal from "../users/createTrustedUserInternal.js";
 
@@ -36,8 +39,11 @@ declare const fullApi: ApiFromModules<{
   "auth/logAuthDiagnostic": typeof auth_logAuthDiagnostic;
   health: typeof health;
   http: typeof http;
+  "mutations/threatIndicators": typeof mutations_threatIndicators;
   "mutations/userManagement": typeof mutations_userManagement;
+  "queries/threatIndicators": typeof queries_threatIndicators;
   "queries/userManagementApi": typeof queries_userManagementApi;
+  "threatIndicators/helpers": typeof threatIndicators_helpers;
   "users/createTrustedUser": typeof users_createTrustedUser;
   "users/createTrustedUserInternal": typeof users_createTrustedUserInternal;
 }>;
