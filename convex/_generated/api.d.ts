@@ -9,6 +9,7 @@
  */
 
 import type * as actions_seedDemoIndicators from "../actions/seedDemoIndicators.js";
+import type * as actions_seedDemoLogs from "../actions/seedDemoLogs.js";
 import type * as actions_userManagementApi from "../actions/userManagementApi.js";
 import type * as auth from "../auth.js";
 import type * as auth_authorization from "../auth/authorization.js";
@@ -20,6 +21,7 @@ import type * as http from "../http.js";
 import type * as logs_helpers from "../logs/helpers.js";
 import type * as logs_ingestLog from "../logs/ingestLog.js";
 import type * as logs_normalizers from "../logs/normalizers.js";
+import type * as logs_seedDemoLogsData from "../logs/seedDemoLogsData.js";
 import type * as mutations_threatIndicators from "../mutations/threatIndicators.js";
 import type * as mutations_userManagement from "../mutations/userManagement.js";
 import type * as queries_threatIndicators from "../queries/threatIndicators.js";
@@ -37,6 +39,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "actions/seedDemoIndicators": typeof actions_seedDemoIndicators;
+  "actions/seedDemoLogs": typeof actions_seedDemoLogs;
   "actions/userManagementApi": typeof actions_userManagementApi;
   auth: typeof auth;
   "auth/authorization": typeof auth_authorization;
@@ -48,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "logs/helpers": typeof logs_helpers;
   "logs/ingestLog": typeof logs_ingestLog;
   "logs/normalizers": typeof logs_normalizers;
+  "logs/seedDemoLogsData": typeof logs_seedDemoLogsData;
   "mutations/threatIndicators": typeof mutations_threatIndicators;
   "mutations/userManagement": typeof mutations_userManagement;
   "queries/threatIndicators": typeof queries_threatIndicators;
