@@ -577,6 +577,20 @@ Rules:
 
 ---
 
+## 10.1 Threat Indicator Product Semantics Rule
+
+Indicators represent IoCs collected from external feeds, simulated feed data, or later ingestion pipelines.
+
+Rules:
+
+1. The UI must not present indicators as manually created threats.
+2. Avoid labels such as `Create threat`.
+3. Manual indicator entry must not be exposed unless explicitly approved and must be worded as `Record indicator`, not `Create threat`.
+4. Threats and events should be generated later by correlation and severity scoring modules, not manually invented in the Indicators UI.
+5. For V1, the Indicators UI is read/list/view-first unless explicitly approved otherwise.
+
+---
+
 # 11. Detection and Scoring Rules
 
 Detection logic must be simple, traceable, and explainable.
@@ -977,6 +991,55 @@ Rules:
 7. Submit handlers, mutation calls, confirmation state, and discard state must stay in the feature Logic layer.
 8. If a form uses a sheet, dialog, or footer action button outside the `<form>`, wire it so it still submits through the `react-hook-form` handler.
 9. If the required form dependencies are missing, state the package requirement and get approval before installing them.
+
+---
+
+## 17.6 AppAlert Usage Rule
+
+Do not use `AppAlert` for permanent page descriptions, static guidance, onboarding copy, workspace introductions, or normal informational page text.
+
+Rules:
+
+1. Page descriptions must live in `PageHeader`, section headers, card descriptions, helper text, or empty-state copy.
+2. `AppAlert` is only for real stateful alerts such as access denied, query or load failure, action success or failure when the existing notification pattern requires `AppAlert`, validation warnings, system warnings, or session/auth/access-state messages.
+3. Do not render an `info` `AppAlert` just because a page loaded successfully.
+4. Do not add page-level `AppAlert` blocks unless the current local pattern already uses `AppAlert` for that exact state.
+5. Before adding `AppAlert`, compare with the existing `UsersView` and other completed local views.
+6. For normal guidance, use plain page copy instead of `AppAlert`.
+7. This rule applies to all future admin pages, including Indicators, Logs, Threat Events, Dashboard, and Settings.
+
+---
+
+## 17.7 Table Loading and Filter UX Rule
+
+Table filtering, searching, sorting, and pagination must not cause a full-page reload or full-page skeleton after the initial page load.
+
+Rules:
+
+1. Initial page load may use the page skeleton.
+2. After the page has mounted, query refetches caused by table controls must show table-level loading only.
+3. Keep page header, layout, navigation, filters, and action buttons stable while table data reloads.
+4. Prefer a table-body loading row or subtle overlay with a spinner such as `Loader2`.
+5. Do not unmount the whole view when only table data is loading.
+6. Do not reset open sheets or dialogs because a table filter changes.
+7. Apply this rule to Users, Indicators, Logs, Threat Events, and future admin data pages.
+
+---
+
+## 17.8 Global Alert Placement Rule
+
+Do not embed `AppAlert` directly inside page views for access denied, info, success, warning, or error messages.
+
+Rules:
+
+1. `AppAlert` and notification messages must be triggered through the existing global or top-center alert system.
+2. Page views should use `PageHeader`, section copy, card descriptions, helper text, or `EmptyState` for normal static content.
+3. Access denied, query failed, action success, and action failure messages should be global alerts, not embedded JSX blocks.
+4. Do not render permanent `AppAlert` blocks inside admin pages.
+5. Do not render an `info` `AppAlert` just because a page loaded successfully.
+6. Prevent repeated alert spam on re-renders.
+7. Before adding alert logic, compare with the existing completed local pattern.
+8. This applies to Users, Indicators, Logs, Threat Events, Dashboard, Settings, and all future admin pages.
 
 ---
 

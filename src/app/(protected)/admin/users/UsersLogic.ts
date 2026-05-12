@@ -3,7 +3,7 @@
 import { useAction, useQuery } from "convex/react";
 import { Eye, Pencil, RotateCcw, ShieldX } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -259,6 +259,9 @@ export function useUsersLogic() {
     useState<PendingEditSummary | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
+  const [lastLoadedUsers, setLastLoadedUsers] = useState<UserRecord[]>([]);
+  const [lastAlertKey, setLastAlertKey] = useState<string | null>(null);
 
   const createUserForm = useForm<CreateUserFormValues>({
     defaultValues: defaultCreateUserValues,
@@ -271,10 +274,74 @@ export function useUsersLogic() {
     resolver: zodResolver(editUserSchema),
   });
 
-  const users = useMemo<UserRecord[]>(() => {
+  const liveUsers = useMemo<UserRecord[]>(() => {
     if (!queryResult || queryResult.status !== "success") return [];
     return queryResult.users as UserRecord[];
   }, [queryResult]);
+
+  useEffect(() => {
+    if (queryResult !== undefined && userContext !== undefined) {
+      setHasLoadedInitialData(true);
+    }
+  }, [queryResult, userContext]);
+
+  useEffect(() => {
+    if (queryResult?.status === "success") {
+      setLastLoadedUsers(queryResult.users as UserRecord[]);
+    }
+  }, [queryResult]);
+
+  useEffect(() => {
+    if (userContext === undefined && queryResult === undefined) {
+      return;
+    }
+
+    const contextStatus = userContext?.status;
+    const listStatus = queryResult?.status;
+
+    if (contextStatus === "forbidden" || contextStatus === "unauthenticated") {
+      const alertKey = `users-access-${contextStatus}`;
+
+      if (lastAlertKey === alertKey) {
+        return;
+      }
+
+      showNotification({
+        description: "Your account cannot manage trusted workspace users.",
+        title: "Access denied",
+        variant: "error",
+      });
+      setLastAlertKey(alertKey);
+      return;
+    }
+
+    if (
+      listStatus !== undefined &&
+      listStatus !== "success" &&
+      listStatus !== "forbidden" &&
+      listStatus !== "unauthenticated"
+    ) {
+      const alertKey = `users-query-${listStatus}`;
+
+      if (lastAlertKey === alertKey) {
+        return;
+      }
+
+      showNotification({
+        description: "Trusted workspace users could not be loaded. Try again.",
+        title: "Load failed",
+        variant: "error",
+      });
+      setLastAlertKey(alertKey);
+      return;
+    }
+
+    if (contextStatus === "success" && listStatus === "success" && lastAlertKey) {
+      setLastAlertKey(null);
+    }
+  }, [lastAlertKey, queryResult, showNotification, userContext]);
+
+  const users = queryResult === undefined ? lastLoadedUsers : liveUsers;
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -297,6 +364,8 @@ export function useUsersLogic() {
   const activeUsers = users.filter((user) => user.status === "active").length;
   const inactiveUsers = users.filter((user) => user.status === "inactive").length;
   const isLoading = queryResult === undefined || userContext === undefined;
+  const isInitialLoading = !hasLoadedInitialData && isLoading;
+  const isTableLoading = hasLoadedInitialData && queryResult === undefined;
   const hasAccess = userContext?.status === "success";
   const currentUserId =
     userContext?.status === "success" ? userContext.context.userId : null;
@@ -654,11 +723,12 @@ export function useUsersLogic() {
     isEditMode,
     isOpenEditSheetConfirmOpen,
     isEditSaveConfirmOpen,
-    isLoading,
+    isInitialLoading,
     isOpenCreateSheetConfirmOpen,
     isReactivating,
     isSaveCreateConfirmOpen,
     isSheetOpen,
+    isTableLoading,
     isUpdating,
     isViewMode,
     openEditSheet,

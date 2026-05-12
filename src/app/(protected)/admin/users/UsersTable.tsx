@@ -14,6 +14,7 @@ export function UsersTable({
   actions,
   data,
   getUserActions,
+  isLoading,
   title,
   description,
 }: {
@@ -21,6 +22,7 @@ export function UsersTable({
   data: UserRecord[];
   description?: string;
   getUserActions: (user: UserRecord) => RowAction[];
+  isLoading?: boolean;
   title?: string;
 }) {
   const columns: ColumnDef<UserRecord>[] = [
@@ -108,6 +110,7 @@ export function UsersTable({
       description={description}
       emptyMessage="No users match this filter."
       emptyStateIcon={<Users className="size-5" />}
+      isLoading={isLoading}
       pageSize={10}
       title={title}
     />

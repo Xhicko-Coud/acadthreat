@@ -57,8 +57,6 @@ export const adminNavigation: NavigationItem[] = [
     label: "Indicators",
     description: "IoC management",
     matchPaths: ["/admin/indicators"],
-    disabled: true,
-    badge: "Coming soon",
   },
   {
     href: "/admin/analytics",

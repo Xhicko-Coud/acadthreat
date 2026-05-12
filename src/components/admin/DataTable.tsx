@@ -7,7 +7,7 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ type DataTableProps<TData> = {
   emptyStateIcon?: ReactNode;
   isLoading?: boolean;
   isLoadingMore?: boolean;
+  loadingMessage?: string;
   loadingRowCount?: number;
   onLoadMore?: () => void;
   pageSize?: number;
@@ -54,6 +55,7 @@ export function DataTable<TData>({
   emptyStateIcon,
   isLoading = false,
   isLoadingMore = false,
+  loadingMessage = "Loading table data...",
   loadingRowCount,
   onLoadMore,
   pageSize = 10,
@@ -104,7 +106,7 @@ export function DataTable<TData>({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-primary text-primary-foreground">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -177,6 +179,14 @@ export function DataTable<TData>({
             )}
           </tbody>
         </table>
+        {isLoading ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/70">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white px-4 py-2 text-sm font-medium text-primary shadow-sm">
+              <Loader2 className="size-4 animate-spin" />
+              <span>{loadingMessage}</span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {!isLoading ? (

@@ -7,7 +7,7 @@ import { UsersView } from "./UsersView";
 export function UsersContainer() {
   const logic = useUsersLogic();
 
-  if (logic.isLoading) {
+  if (logic.isInitialLoading) {
     return <UsersSkeleton />;
   }
 

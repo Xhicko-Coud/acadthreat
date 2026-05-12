@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 import { AdminActionSheet } from "@/components/admin/AdminActionSheet";
-import { AppAlert } from "@/components/shared/AppAlert";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -45,11 +45,11 @@ export function UsersView({
   isOpenEditSheetConfirmOpen,
   isEditMode,
   isEditSaveConfirmOpen,
-  isLoading,
   isOpenCreateSheetConfirmOpen,
   isReactivating,
   isSaveCreateConfirmOpen,
   isSheetOpen,
+  isTableLoading,
   isUpdating,
   isViewMode,
   pendingCreateSummary,
@@ -117,13 +117,14 @@ export function UsersView({
       </section>
 
       {!hasAccess ? (
-        <AppAlert
-          description="Your account cannot manage trusted workspace users."
-          title="Access denied"
-          variant="error"
+        <EmptyState
+          description="Your account does not currently have permission to manage trusted internal workspace users."
+          icon={ShieldX}
+          title="User management restricted"
         />
       ) : null}
 
+      {hasAccess ? (
       <section className="grid gap-4 md:grid-cols-3">
         {metrics.map((metric) => (
           <article
@@ -147,7 +148,9 @@ export function UsersView({
           </article>
         ))}
       </section>
+      ) : null}
 
+      {hasAccess ? (
       <UsersTable
         actions={
           <>
@@ -180,8 +183,10 @@ export function UsersView({
         data={filteredUsers}
         description="All trusted internal users and their current workspace access status."
         getUserActions={getUserActions}
+        isLoading={isTableLoading}
         title="User Directory"
       />
+      ) : null}
 
       <AdminActionSheet
         cancelText={isViewMode ? "Close" : "Cancel"}
@@ -198,7 +203,7 @@ export function UsersView({
         onCancel={() => handleSheetOpenChange(false)}
         onConfirm={requestSaveSheet}
         onOpenChange={handleSheetOpenChange}
-        open={isSheetOpen}
+        open={hasAccess && isSheetOpen}
         showConfirmButton={!isViewMode}
         title={
           isCreateMode ? "Create user" : isViewMode ? "View user" : "Edit user"
@@ -214,6 +219,7 @@ export function UsersView({
         />
       </AdminActionSheet>
 
+      {hasAccess ? (
       <UsersDialogs
         allowOpenEditSheet={allowOpenEditSheet}
         allowOpenCreateSheet={allowOpenCreateSheet}
@@ -246,6 +252,7 @@ export function UsersView({
         sheetUser={sheetUser}
         updateUser={updateUser}
       />
+      ) : null}
     </div>
   );
 }
