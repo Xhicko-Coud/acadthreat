@@ -48,8 +48,6 @@ export const adminNavigation: NavigationItem[] = [
     label: "Logs",
     description: "Raw and normalized events",
     matchPaths: ["/admin/logs"],
-    disabled: true,
-    badge: "Coming soon",
   },
   {
     href: "/admin/indicators",
