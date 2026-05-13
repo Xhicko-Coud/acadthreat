@@ -11,6 +11,8 @@ import {
 import {
   canUpdateThreatEventStatus,
   canViewThreatEvents,
+  threatEventPriorityValidator,
+  threatEventScoringStatusValidator,
   threatEventStatusValidator,
 } from "@convex/threatEvents/helpers";
 
@@ -30,6 +32,7 @@ export const getThreatEventContext = query({
         canUpdateThreatEventStatus: canUpdateThreatEventStatus(
           access.profile.role,
         ),
+        canViewSeverityScoring: true,
         canViewThreatEvents: true,
       },
       role: access.profile.role,
@@ -41,6 +44,8 @@ export const getThreatEventContext = query({
 export const listThreatEvents = query({
   args: {
     indicatorType: v.optional(threatIndicatorTypeValidator),
+    priority: v.optional(threatEventPriorityValidator),
+    scoringStatus: v.optional(threatEventScoringStatusValidator),
     search: v.optional(v.string()),
     severity: v.optional(threatIndicatorSeverityValidator),
     sourceType: v.optional(logSourceTypeValidator),
@@ -55,6 +60,8 @@ export const listThreatEvents = query({
 
     try {
       const records = await loadThreatEvents(ctx, {
+        priority: args.priority,
+        scoringStatus: args.scoringStatus,
         severity: args.severity,
         sourceType: args.sourceType,
         status: args.status,
@@ -151,6 +158,8 @@ async function getThreatEventReadContext(ctx: QueryCtx) {
 async function loadThreatEvents(
   ctx: QueryCtx,
   filters: {
+    priority?: Doc<"threatEvents">["priority"];
+    scoringStatus?: Doc<"threatEvents">["scoringStatus"];
     severity?: Doc<"threatEvents">["severity"];
     sourceType?: Doc<"threatEvents">["sourceType"];
     status?: Doc<"threatEvents">["status"];
@@ -171,6 +180,26 @@ async function loadThreatEvents(
       .query("threatEvents")
       .withIndex("by_severity_and_detectedAt", (lookup) =>
         lookup.eq("severity", filters.severity!),
+      )
+      .order("desc")
+      .take(MAX_LIST_RESULTS);
+  }
+
+  if (filters.priority) {
+    return await ctx.db
+      .query("threatEvents")
+      .withIndex("by_priority_and_detectedAt", (lookup) =>
+        lookup.eq("priority", filters.priority!),
+      )
+      .order("desc")
+      .take(MAX_LIST_RESULTS);
+  }
+
+  if (filters.scoringStatus) {
+    return await ctx.db
+      .query("threatEvents")
+      .withIndex("by_scoringStatus_and_detectedAt", (lookup) =>
+        lookup.eq("scoringStatus", filters.scoringStatus!),
       )
       .order("desc")
       .take(MAX_LIST_RESULTS);
@@ -197,6 +226,8 @@ function matchesStructuredFilters(
   event: Doc<"threatEvents">,
   filters: {
     indicatorType?: Doc<"threatEvents">["indicatorType"];
+    priority?: Doc<"threatEvents">["priority"];
+    scoringStatus?: Doc<"threatEvents">["scoringStatus"];
     severity?: Doc<"threatEvents">["severity"];
     sourceType?: Doc<"threatEvents">["sourceType"];
     status?: Doc<"threatEvents">["status"];
@@ -207,6 +238,17 @@ function matchesStructuredFilters(
   }
 
   if (filters.severity && event.severity !== filters.severity) {
+    return false;
+  }
+
+  if (filters.priority && event.priority !== filters.priority) {
+    return false;
+  }
+
+  if (
+    filters.scoringStatus &&
+    event.scoringStatus !== filters.scoringStatus
+  ) {
     return false;
   }
 
@@ -254,7 +296,12 @@ function toThreatEventRow(event: Doc<"threatEvents">) {
     indicatorValue: event.indicatorValue,
     isSimulated: event.isSimulated,
     matchedField: event.matchedField,
+    priority: event.priority ?? null,
+    scoredAt: event.scoredAt ?? null,
+    scoringReason: event.scoringReason ?? "",
+    scoringStatus: event.scoringStatus ?? "unscored",
     severity: event.severity,
+    severityScore: event.severityScore ?? 0,
     sourceType: event.sourceType,
     status: event.status,
     updatedAt: event.updatedAt,
@@ -270,6 +317,7 @@ function toThreatEventDetail(
 ) {
   return {
     ...toThreatEventRow(event),
+    scoringFactors: event.scoringFactors ?? null,
     indicator: context.indicator
       ? toSafeIndicatorContext(context.indicator)
       : null,

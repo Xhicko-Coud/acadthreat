@@ -3,6 +3,7 @@ import {
   Filter,
   Plus,
   Users,
+  ShieldX,
 } from "lucide-react";
 
 import { AdminActionSheet } from "@/components/admin/AdminActionSheet";

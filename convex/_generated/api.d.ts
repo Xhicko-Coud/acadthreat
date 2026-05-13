@@ -24,6 +24,7 @@ import type * as logs_helpers from "../logs/helpers.js";
 import type * as logs_ingestLog from "../logs/ingestLog.js";
 import type * as logs_normalizers from "../logs/normalizers.js";
 import type * as logs_seedDemoLogsData from "../logs/seedDemoLogsData.js";
+import type * as maintenance_runSeverityScoring from "../maintenance/runSeverityScoring.js";
 import type * as mutations_threatEvents from "../mutations/threatEvents.js";
 import type * as mutations_threatIndicators from "../mutations/threatIndicators.js";
 import type * as mutations_userManagement from "../mutations/userManagement.js";
@@ -34,6 +35,8 @@ import type * as queries_userManagementApi from "../queries/userManagementApi.js
 import type * as threatEvents_correlation from "../threatEvents/correlation.js";
 import type * as threatEvents_helpers from "../threatEvents/helpers.js";
 import type * as threatEvents_recentEvents from "../threatEvents/recentEvents.js";
+import type * as threatEvents_scoring from "../threatEvents/scoring.js";
+import type * as threatEvents_severityScoring from "../threatEvents/severityScoring.js";
 import type * as threatIndicators_helpers from "../threatIndicators/helpers.js";
 import type * as threatIndicators_seedDemoIndicatorsInternal from "../threatIndicators/seedDemoIndicatorsInternal.js";
 import type * as users_createTrustedUser from "../users/createTrustedUser.js";
@@ -62,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "logs/ingestLog": typeof logs_ingestLog;
   "logs/normalizers": typeof logs_normalizers;
   "logs/seedDemoLogsData": typeof logs_seedDemoLogsData;
+  "maintenance/runSeverityScoring": typeof maintenance_runSeverityScoring;
   "mutations/threatEvents": typeof mutations_threatEvents;
   "mutations/threatIndicators": typeof mutations_threatIndicators;
   "mutations/userManagement": typeof mutations_userManagement;
@@ -72,6 +76,8 @@ declare const fullApi: ApiFromModules<{
   "threatEvents/correlation": typeof threatEvents_correlation;
   "threatEvents/helpers": typeof threatEvents_helpers;
   "threatEvents/recentEvents": typeof threatEvents_recentEvents;
+  "threatEvents/scoring": typeof threatEvents_scoring;
+  "threatEvents/severityScoring": typeof threatEvents_severityScoring;
   "threatIndicators/helpers": typeof threatIndicators_helpers;
   "threatIndicators/seedDemoIndicatorsInternal": typeof threatIndicators_seedDemoIndicatorsInternal;
   "users/createTrustedUser": typeof users_createTrustedUser;

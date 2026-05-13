@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   formatThreatEventIndicatorTypeLabel,
   formatThreatEventMatchedFieldLabel,
+  formatThreatEventPriorityLabel,
+  formatThreatEventScoringStatusLabel,
   formatThreatEventSeverityLabel,
   formatThreatEventSourceLabel,
   formatThreatEventStatusLabel,
@@ -12,6 +14,7 @@ import {
   formatThreatEventTypeLabel,
   type ThreatEventDetailRecord,
   type ThreatEventRecord,
+  type ThreatEventScoringFactors,
 } from "./ThreatEventsLogic";
 
 export function ThreatEventDetails({
@@ -27,6 +30,10 @@ export function ThreatEventDetails({
       : null;
   const indicator =
     threatEvent && "indicator" in threatEvent ? threatEvent.indicator : null;
+  const scoringFactors =
+    threatEvent && "scoringFactors" in threatEvent
+      ? threatEvent.scoringFactors
+      : null;
 
   return (
     <div className="grid gap-6 py-4">
@@ -96,6 +103,11 @@ export function ThreatEventDetails({
             threatEvent ? formatThreatEventStatusLabel(threatEvent.status) : ""
           }
         />
+        <ReadOnlyField
+          id="threat-priority"
+          label="Priority"
+          value={formatPriorityValue(threatEvent)}
+        />
         <ReadOnlyTextArea
           id="threat-correlation-reason"
           label="Correlation Reason"
@@ -128,6 +140,44 @@ export function ThreatEventDetails({
           label="Updated At"
           value={threatEvent ? formatThreatEventTime(threatEvent.updatedAt) : ""}
         />
+      </section>
+
+      <section className="grid gap-5 border-t border-primary/10 pt-5">
+        <SectionHeading title="Severity scoring" />
+        <ReadOnlyField
+          id="scoring-score"
+          label="Score"
+          value={formatScoreValue(threatEvent)}
+        />
+        <ReadOnlyField
+          id="scoring-priority"
+          label="Priority"
+          value={formatPriorityValue(threatEvent)}
+        />
+        <ReadOnlyField
+          id="scoring-status"
+          label="Scoring Status"
+          value={
+            threatEvent
+              ? formatThreatEventScoringStatusLabel(threatEvent.scoringStatus)
+              : ""
+          }
+        />
+        <ReadOnlyTextArea
+          id="scoring-reason"
+          label="Scoring Reason"
+          value={getScoringReason(threatEvent)}
+        />
+        <ReadOnlyField
+          id="scoring-scored-at"
+          label="Scored At"
+          value={
+            threatEvent?.scoredAt
+              ? formatThreatEventTime(threatEvent.scoredAt)
+              : "Not scored"
+          }
+        />
+        <ScoringFactorsView scoringFactors={scoringFactors} />
       </section>
 
       {normalizedEvent ? (
@@ -264,6 +314,141 @@ export function ThreatEventDetails({
       </p>
     </div>
   );
+}
+
+function ScoringFactorsView({
+  scoringFactors,
+}: {
+  scoringFactors: ThreatEventScoringFactors | null;
+}) {
+  if (!scoringFactors) {
+    return (
+      <ReadOnlyTextArea
+        id="scoring-factors-empty"
+        label="Scoring Factors"
+        value="No scoring factors are available yet."
+      />
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ReadOnlyField
+          id="factor-indicator-severity"
+          label="Indicator Severity"
+          value={scoringFactors.indicatorSeverity ?? "-"}
+        />
+        <ReadOnlyField
+          id="factor-indicator-confidence"
+          label="Indicator Confidence"
+          value={formatOptionalNumber(scoringFactors.indicatorConfidence)}
+        />
+        <ReadOnlyField
+          id="factor-matched-field"
+          label="Matched Field"
+          value={scoringFactors.matchedField ?? "-"}
+        />
+        <ReadOnlyField
+          id="factor-event-type"
+          label="Event Type"
+          value={
+            scoringFactors.eventType
+              ? formatThreatEventTypeLabel(scoringFactors.eventType)
+              : "-"
+          }
+        />
+        <ReadOnlyField
+          id="factor-outcome"
+          label="Outcome"
+          value={scoringFactors.outcome ?? "-"}
+        />
+        <ReadOnlyField
+          id="factor-source-type"
+          label="Source Type"
+          value={scoringFactors.sourceType ?? "-"}
+        />
+        <ReadOnlyField
+          id="factor-frequency-count"
+          label="Frequency Count"
+          value={formatOptionalNumber(scoringFactors.frequencyCount)}
+        />
+        <ReadOnlyField
+          id="factor-simulated"
+          label="Simulated"
+          value={
+            typeof scoringFactors.isSimulated === "boolean"
+              ? scoringFactors.isSimulated
+                ? "Yes"
+                : "No"
+              : "-"
+          }
+        />
+      </div>
+
+      <div className="grid gap-2">
+        <SectionHeading title="Contributions" />
+        {scoringFactors.scoreContributions?.length ? (
+          scoringFactors.scoreContributions.map((contribution, index) => (
+            <div
+              className="rounded-md border border-primary/10 bg-primary/5 px-3 py-2"
+              key={`${contribution.label}-${index}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-primary">
+                  {contribution.label}
+                </p>
+                <span className="text-sm font-semibold text-primary">
+                  {contribution.value}
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-primary/70">
+                {contribution.reason}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="rounded-md border border-primary/10 bg-primary/5 px-3 py-2 text-xs text-primary/80">
+            No contribution details are available yet.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatScoreValue(
+  threatEvent: ThreatEventDetailRecord | ThreatEventRecord | null,
+) {
+  if (!threatEvent || threatEvent.scoringStatus === "unscored") {
+    return "Unscored";
+  }
+
+  return `${threatEvent.severityScore}/100`;
+}
+
+function formatPriorityValue(
+  threatEvent: ThreatEventDetailRecord | ThreatEventRecord | null,
+) {
+  if (!threatEvent?.priority) {
+    return "-";
+  }
+
+  return formatThreatEventPriorityLabel(threatEvent.priority);
+}
+
+function getScoringReason(
+  threatEvent: ThreatEventDetailRecord | ThreatEventRecord | null,
+) {
+  if (!threatEvent || threatEvent.scoringStatus === "unscored") {
+    return "This threat event has not been scored yet.";
+  }
+
+  return threatEvent.scoringReason || "No scoring reason is available.";
+}
+
+function formatOptionalNumber(value: number | undefined) {
+  return typeof value === "number" ? String(value) : "-";
 }
 
 function SectionHeading({ title }: { title: string }) {

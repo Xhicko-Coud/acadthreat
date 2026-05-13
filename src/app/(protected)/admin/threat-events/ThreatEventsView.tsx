@@ -6,6 +6,8 @@ import { ThreatEventsDialogs } from "./ThreatEventsDialogs";
 import type { useThreatEventsLogic } from "./ThreatEventsLogic";
 import {
   formatThreatEventIndicatorTypeLabel,
+  formatThreatEventPriorityLabel,
+  formatThreatEventScoringStatusLabel,
   formatThreatEventSeverityLabel,
   formatThreatEventSourceLabel,
   formatThreatEventStatusLabel,
@@ -26,7 +28,11 @@ export function ThreatEventsView({
   isTableLoading,
   isUpdatingStatus,
   pendingStatusUpdate,
+  priorityFilter,
+  scoringStatusFilter,
   setIndicatorTypeFilter,
+  setPriorityFilter,
+  setScoringStatusFilter,
   setSeverityFilter,
   setSourceTypeFilter,
   setStatusFilter,
@@ -100,6 +106,42 @@ export function ThreatEventsView({
                   severityFilter === "all"
                     ? "All severities"
                     : formatThreatEventSeverityLabel(severityFilter),
+              },
+              {
+                key: "priority",
+                label: "Priority",
+                onSelect: (value) =>
+                  setPriorityFilter(
+                    value as "all" | "low" | "medium" | "high" | "critical",
+                  ),
+                options: [
+                  { label: "All priorities", value: "all" },
+                  { label: "Low", value: "low" },
+                  { label: "Medium", value: "medium" },
+                  { label: "High", value: "high" },
+                  { label: "Critical", value: "critical" },
+                ],
+                value: priorityFilter,
+                valueLabel:
+                  priorityFilter === "all"
+                    ? "All priorities"
+                    : formatThreatEventPriorityLabel(priorityFilter),
+              },
+              {
+                key: "scoringStatus",
+                label: "Scoring Status",
+                onSelect: (value) =>
+                  setScoringStatusFilter(value as "all" | "unscored" | "scored"),
+                options: [
+                  { label: "All scoring statuses", value: "all" },
+                  { label: "Unscored", value: "unscored" },
+                  { label: "Scored", value: "scored" },
+                ],
+                value: scoringStatusFilter,
+                valueLabel:
+                  scoringStatusFilter === "all"
+                    ? "All scoring statuses"
+                    : formatThreatEventScoringStatusLabel(scoringStatusFilter),
               },
               {
                 key: "sourceType",

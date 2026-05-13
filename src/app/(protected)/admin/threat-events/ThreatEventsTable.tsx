@@ -12,11 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import {
   formatThreatEventIndicatorTypeLabel,
   formatThreatEventMatchedFieldLabel,
-  formatThreatEventSeverityLabel,
+  formatThreatEventPriorityLabel,
   formatThreatEventSourceLabel,
+  formatThreatEventScoringStatusLabel,
   formatThreatEventStatusLabel,
   formatThreatEventTime,
   formatThreatEventTypeLabel,
+  type ThreatEventPriority,
   type ThreatEventRecord,
 } from "./ThreatEventsLogic";
 
@@ -81,32 +83,46 @@ export function ThreatEventsTable({
       ),
     },
     {
-      accessorKey: "severity",
-      header: "Severity",
+      accessorKey: "severityScore",
+      header: "Score",
       cell: ({ row }) => {
-        const severity = row.original.severity;
-        const className =
-          severity === "critical"
-            ? "bg-red-50 text-red-700"
-            : severity === "high"
-              ? "bg-amber-50 text-amber-700"
-              : severity === "medium"
-                ? "bg-yellow-50 text-yellow-700"
-                : "bg-emerald-50 text-emerald-700";
+        if (row.original.scoringStatus === "unscored") {
+          return (
+            <span className="whitespace-nowrap text-muted-foreground">
+              {formatThreatEventScoringStatusLabel(row.original.scoringStatus)}
+            </span>
+          );
+        }
 
         return (
-          <Badge className={`rounded-full px-2.5 py-0.5 ${className}`}>
-            {formatThreatEventSeverityLabel(severity)}
-          </Badge>
+          <span className="whitespace-nowrap font-medium text-primary">
+            {row.original.severityScore}/100
+          </span>
         );
       },
     },
     {
-      accessorKey: "confidence",
-      header: "Confidence",
-      cell: ({ row }) => (
-        <span className="text-primary/80">{row.original.confidence}</span>
-      ),
+      accessorKey: "priority",
+      header: "Priority",
+      cell: ({ row }) => {
+        const priority = row.original.priority;
+
+        if (!priority) {
+          return (
+            <Badge className="rounded-full bg-slate-100 px-2.5 py-0.5 text-slate-700">
+              Unscored
+            </Badge>
+          );
+        }
+
+        return (
+          <Badge
+            className={`rounded-full px-2.5 py-0.5 ${getPriorityBadgeClassName(priority)}`}
+          >
+            {formatThreatEventPriorityLabel(priority)}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "status",
@@ -161,4 +177,20 @@ export function ThreatEventsTable({
       title={title}
     />
   );
+}
+
+function getPriorityBadgeClassName(priority: ThreatEventPriority) {
+  if (priority === "critical") {
+    return "bg-red-50 text-red-700";
+  }
+
+  if (priority === "high") {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  if (priority === "medium") {
+    return "bg-yellow-50 text-yellow-700";
+  }
+
+  return "bg-emerald-50 text-emerald-700";
 }

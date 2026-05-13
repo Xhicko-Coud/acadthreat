@@ -516,6 +516,25 @@ Do not create all folders early. Create folders only when the module needs them.
 
 ---
 
+## 8.1 Convex Function Folder and Runtime Rule
+
+Rules:
+
+1. Do not create new files under `convex/actions` by default.
+2. Convex actions can live in any folder.
+3. Use neutral folders such as `convex/maintenance`, `convex/jobs`, or a domain folder for normal non-Node actions.
+4. Use `"use node"` only when a regular action truly needs Node APIs or unsupported Node packages.
+5. Files with `"use node"` must export only `action` or `internalAction` functions.
+6. Do not export `query`, `mutation`, `internalQuery`, `internalMutation`, or `httpAction` from `"use node"` files.
+7. HTTP actions must not live under `convex/actions`.
+8. HTTP actions must not use `"use node"`.
+9. HTTP actions should live in `convex/http` or another neutral folder.
+10. Internal mutations should live in domain folders and be called through `ctx.runMutation`.
+11. Maintenance runners should call internal mutations instead of doing broad database writes directly.
+12. When writing future prompts, never suggest `convex/actions` for new runners unless Node runtime is explicitly required.
+
+---
+
 # 9. Log Ingestion Rules
 
 Log ingestion is security-sensitive.
@@ -565,7 +584,7 @@ Rules:
 6. Convex HTTP actions must not import Node APIs such as `node:crypto`.
 7. Convex HTTP actions must not use `"use node"`.
 8. HTTP action files must not be placed under `convex/actions`.
-9. The `convex/actions` folder is only for regular actions, especially Node actions.
+9. Do not use `convex/actions` for new normal non-Node maintenance runners.
 10. HTTP actions should live in a neutral folder such as `convex/http/` or another non-actions folder.
 11. Use Web Crypto APIs for HMAC inside HTTP actions.
 12. `"use node"` is only for regular action files that export `action` functions.
@@ -665,6 +684,13 @@ Rules:
 7. Score range is 0-100.
 8. Priority bands are low, medium, high, and critical.
 9. UI may display score or priority later, but scoring logic must remain backend-generated.
+10. Scoring runners are backend maintenance operations only unless explicitly approved for UI.
+11. Normal UI must not expose `Score threat` actions.
+12. Scoring mutations must update scoring fields and score-derived severity only, and must not alter correlation evidence.
+13. Backend queries may expose safe score, priority, scoring status, scoring reason, and scored timestamp fields.
+14. Full scoring factors belong in detail views, not table rows, unless compact and explicitly safe.
+15. UI must not expose raw payloads or backend internals through scoring evidence.
+16. Do not add manual score editing or normal UI scoring actions.
 
 ---
 

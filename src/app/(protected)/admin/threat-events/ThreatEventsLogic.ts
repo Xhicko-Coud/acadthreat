@@ -15,6 +15,8 @@ export type ThreatEventStatus =
   | "resolved"
   | "false_positive";
 export type ThreatEventSeverity = "low" | "medium" | "high" | "critical";
+export type ThreatEventPriority = "low" | "medium" | "high" | "critical";
+export type ThreatEventScoringStatus = "unscored" | "scored";
 export type ThreatEventSourceType = "authentication" | "firewall";
 export type ThreatEventIndicatorType =
   | "ip"
@@ -46,10 +48,33 @@ export type ThreatEventRecord = {
   indicatorValue: string;
   isSimulated: boolean;
   matchedField: ThreatEventMatchedField;
+  priority: ThreatEventPriority | null;
+  scoredAt: number | null;
+  scoringReason: string;
+  scoringStatus: ThreatEventScoringStatus;
   severity: ThreatEventSeverity;
+  severityScore: number;
   sourceType: ThreatEventSourceType;
   status: ThreatEventStatus;
   updatedAt: number;
+};
+
+export type ThreatEventScoreContribution = {
+  label: string;
+  reason: string;
+  value: number;
+};
+
+export type ThreatEventScoringFactors = {
+  eventType?: string;
+  frequencyCount?: number;
+  indicatorConfidence?: number;
+  indicatorSeverity?: string;
+  isSimulated?: boolean;
+  matchedField?: string;
+  outcome?: string;
+  scoreContributions?: ThreatEventScoreContribution[];
+  sourceType?: string;
 };
 
 export type ThreatEventNormalizedContext = {
@@ -87,6 +112,7 @@ export type ThreatEventIndicatorContext = {
 export type ThreatEventDetailRecord = ThreatEventRecord & {
   indicator: ThreatEventIndicatorContext | null;
   normalizedEvent: ThreatEventNormalizedContext | null;
+  scoringFactors: ThreatEventScoringFactors | null;
 };
 
 export type PendingThreatEventStatusUpdate = {
@@ -163,6 +189,28 @@ export function formatThreatEventSeverityLabel(severity: ThreatEventSeverity) {
   return labels[severity];
 }
 
+export function formatThreatEventPriorityLabel(priority: ThreatEventPriority) {
+  const labels: Record<ThreatEventPriority, string> = {
+    critical: "Critical",
+    high: "High",
+    low: "Low",
+    medium: "Medium",
+  };
+
+  return labels[priority];
+}
+
+export function formatThreatEventScoringStatusLabel(
+  scoringStatus: ThreatEventScoringStatus,
+) {
+  const labels: Record<ThreatEventScoringStatus, string> = {
+    scored: "Scored",
+    unscored: "Unscored",
+  };
+
+  return labels[scoringStatus];
+}
+
 export function formatThreatEventStatusLabel(status: ThreatEventStatus) {
   const labels: Record<ThreatEventStatus, string> = {
     false_positive: "False positive",
@@ -201,6 +249,12 @@ export function useThreatEventsLogic() {
   const [indicatorTypeFilter, setIndicatorTypeFilter] = useState<
     ThreatEventIndicatorType | "all"
   >("all");
+  const [priorityFilter, setPriorityFilter] = useState<
+    ThreatEventPriority | "all"
+  >("all");
+  const [scoringStatusFilter, setScoringStatusFilter] = useState<
+    ThreatEventScoringStatus | "all"
+  >("all");
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
   const [lastLoadedThreatEvents, setLastLoadedThreatEvents] = useState<
     ThreatEventRecord[]
@@ -216,6 +270,9 @@ export function useThreatEventsLogic() {
   const queryResult = useQuery(api.queries.threatEvents.listThreatEvents, {
     indicatorType:
       indicatorTypeFilter === "all" ? undefined : indicatorTypeFilter,
+    priority: priorityFilter === "all" ? undefined : priorityFilter,
+    scoringStatus:
+      scoringStatusFilter === "all" ? undefined : scoringStatusFilter,
     severity: severityFilter === "all" ? undefined : severityFilter,
     sourceType: sourceTypeFilter === "all" ? undefined : sourceTypeFilter,
     status: statusFilter === "all" ? undefined : statusFilter,
@@ -450,8 +507,12 @@ export function useThreatEventsLogic() {
     isTableLoading,
     isUpdatingStatus,
     pendingStatusUpdate,
+    priorityFilter,
+    scoringStatusFilter,
     selectedThreatEvent,
     setIndicatorTypeFilter,
+    setPriorityFilter,
+    setScoringStatusFilter,
     setSeverityFilter,
     setSourceTypeFilter,
     setStatusFilter,
