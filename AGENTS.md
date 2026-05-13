@@ -1135,16 +1135,19 @@ Rules:
 
 ---
 
-## 17.9 Admin Search Deferral Rule
+## 17.9 Admin Table Search Rule
 
-Do not add page-level search controls to admin pages for now.
+Do not add table search controls to admin pages by default.
 
 Rules:
 
-1. Do not add search inputs, search bars, or free-text filter boxes to new or updated admin pages unless the user explicitly requests search for that exact page.
-2. Prefer scoped select filters and safe structured filters only while search is deferred.
-3. If backend search support already exists, do not surface it in the page UI unless explicitly approved for the current task.
-4. This applies to Users, Indicators, Logs, Threat Events, Dashboard, Settings, and future admin pages until the rule is updated.
+1. Do not add search inputs to admin table pages by default.
+2. Admin tables should use structured filters through `FilterDropdownMenu`.
+3. Search may only be added when explicitly approved for that specific page and justified by the data volume/use case.
+4. Do not add search just because a backend query supports a search parameter.
+5. Do not clutter table headers with search fields.
+6. If search is approved later, it must follow the table-level loading rule and must not cause full-page skeleton reloads.
+7. This applies to Users, Indicators, Logs, Threat Events, Dashboard drilldowns, Reports, Settings, and future admin data pages.
 
 ---
 
@@ -1159,7 +1162,7 @@ Rules:
 3. Do not crowd page headers or table control rows with many visible select boxes.
 4. Do not allow filters to wrap into messy multi-row desktop or tablet layouts.
 5. Header and action areas should stay stable; filter controls should collapse before they break the layout.
-6. Search may remain visible as the primary search control only if it does not clutter the layout.
+6. Search is not part of the default admin table pattern and requires explicit approval.
 7. The first level of `FilterDropdownMenu` must show filter categories.
 8. The forward or right arrow means the category opens a second-level option list.
 9. The second level must list all available options for that filter, not only the current selected value.

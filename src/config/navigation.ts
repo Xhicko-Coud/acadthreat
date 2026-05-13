@@ -34,13 +34,11 @@ export const adminNavigation: NavigationItem[] = [
     matchPaths: ["/admin/users"],
   },
   {
-    href: "/admin/threats",
+    href: "/admin/threat-events",
     icon: ShieldAlertIcon,
-    label: "Threats",
-    description: "Investigation workspace",
-    matchPaths: ["/admin/threats"],
-    disabled: true,
-    badge: "Coming soon",
+    label: "Threat Events",
+    description: "Correlated detections",
+    matchPaths: ["/admin/threat-events"],
   },
   {
     href: "/admin/logs",
