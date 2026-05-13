@@ -24,6 +24,7 @@ import type * as logs_helpers from "../logs/helpers.js";
 import type * as logs_ingestLog from "../logs/ingestLog.js";
 import type * as logs_normalizers from "../logs/normalizers.js";
 import type * as logs_seedDemoLogsData from "../logs/seedDemoLogsData.js";
+import type * as mutations_threatEvents from "../mutations/threatEvents.js";
 import type * as mutations_threatIndicators from "../mutations/threatIndicators.js";
 import type * as mutations_userManagement from "../mutations/userManagement.js";
 import type * as queries_logs from "../queries/logs.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   "logs/ingestLog": typeof logs_ingestLog;
   "logs/normalizers": typeof logs_normalizers;
   "logs/seedDemoLogsData": typeof logs_seedDemoLogsData;
+  "mutations/threatEvents": typeof mutations_threatEvents;
   "mutations/threatIndicators": typeof mutations_threatIndicators;
   "mutations/userManagement": typeof mutations_userManagement;
   "queries/logs": typeof queries_logs;

@@ -8,6 +8,7 @@ import {
   THREAT_INDICATOR_TYPES,
 } from "@convex/threatIndicators/helpers";
 import {
+  SCORING_STATUSES,
   THREAT_EVENT_STATUSES,
   buildThreatEventDeduplicationKey,
   isValidThreatEventConfidence,
@@ -106,6 +107,11 @@ export const correlateNormalizedEventInternal = internalMutation({
           continue;
         }
 
+        const severity = deriveThreatEventSeverity(
+          event,
+          match.indicator.severity,
+        );
+
         await ctx.db.insert("threatEvents", {
           normalizedEventId: event._id,
           rawLogId: event.rawLogId,
@@ -116,7 +122,12 @@ export const correlateNormalizedEventInternal = internalMutation({
           indicatorType: match.indicator.type,
           indicatorValue: match.indicator.value,
           matchedField: match.matchedField,
-          severity: deriveThreatEventSeverity(event, match.indicator.severity),
+          severity,
+          severityScore: 0,
+          priority: severity,
+          scoringStatus: SCORING_STATUSES.unscored,
+          scoringReason: "",
+          scoringFactors: {},
           confidence: match.indicator.confidence,
           status: THREAT_EVENT_STATUSES.open,
           correlationReason: buildCorrelationReason(match),

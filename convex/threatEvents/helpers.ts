@@ -48,6 +48,28 @@ export const THREAT_EVENT_SEVERITY_ORDER = {
   critical: 4,
 } as const;
 
+export const PRIORITY_LEVELS = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export const SCORING_STATUSES = {
+  unscored: "unscored",
+  scored: "scored",
+} as const;
+
+export const SEVERITY_SCORE_MIN = 0;
+export const SEVERITY_SCORE_MAX = 100;
+
+export const PRIORITY_SCORE_BANDS = {
+  low: { max: 39, min: 0 },
+  medium: { max: 69, min: 40 },
+  high: { max: 89, min: 70 },
+  critical: { max: 100, min: 90 },
+} as const;
+
 // ---------------------------------------------------------------------------
 // Validators
 // ---------------------------------------------------------------------------
@@ -71,6 +93,18 @@ export const threatEventMatchedFieldValidator = v.union(
   v.literal(THREAT_EVENT_MATCHED_FIELDS.other),
 );
 
+export const threatEventPriorityValidator = v.union(
+  v.literal(PRIORITY_LEVELS.low),
+  v.literal(PRIORITY_LEVELS.medium),
+  v.literal(PRIORITY_LEVELS.high),
+  v.literal(PRIORITY_LEVELS.critical),
+);
+
+export const threatEventScoringStatusValidator = v.union(
+  v.literal(SCORING_STATUSES.unscored),
+  v.literal(SCORING_STATUSES.scored),
+);
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -80,6 +114,10 @@ export type ThreatEventMatchedField = Infer<
   typeof threatEventMatchedFieldValidator
 >;
 export type ThreatEventSeverity = Infer<typeof threatIndicatorSeverityValidator>;
+export type ThreatEventPriority = Infer<typeof threatEventPriorityValidator>;
+export type ThreatEventScoringStatus = Infer<
+  typeof threatEventScoringStatusValidator
+>;
 
 // ---------------------------------------------------------------------------
 // Capability Helpers
@@ -144,4 +182,90 @@ export function normalizeCorrelationText(value: unknown) {
   }
 
   return value.trim().toLowerCase();
+}
+
+// ---------------------------------------------------------------------------
+// Severity Scoring Foundation Helpers
+// ---------------------------------------------------------------------------
+
+export function clampSeverityScore(score: number) {
+  if (!Number.isFinite(score)) {
+    return SEVERITY_SCORE_MIN;
+  }
+
+  const roundedScore = Math.round(score);
+
+  if (roundedScore < SEVERITY_SCORE_MIN) {
+    return SEVERITY_SCORE_MIN;
+  }
+
+  if (roundedScore > SEVERITY_SCORE_MAX) {
+    return SEVERITY_SCORE_MAX;
+  }
+
+  return roundedScore;
+}
+
+export function getPriorityFromSeverityScore(
+  score: number,
+): ThreatEventPriority {
+  const clampedScore = clampSeverityScore(score);
+
+  if (clampedScore >= PRIORITY_SCORE_BANDS.critical.min) {
+    return PRIORITY_LEVELS.critical;
+  }
+
+  if (clampedScore >= PRIORITY_SCORE_BANDS.high.min) {
+    return PRIORITY_LEVELS.high;
+  }
+
+  if (clampedScore >= PRIORITY_SCORE_BANDS.medium.min) {
+    return PRIORITY_LEVELS.medium;
+  }
+
+  return PRIORITY_LEVELS.low;
+}
+
+export function isValidSeverityScore(score: number) {
+  return (
+    Number.isFinite(score) &&
+    score >= SEVERITY_SCORE_MIN &&
+    score <= SEVERITY_SCORE_MAX
+  );
+}
+
+export function isValidPriority(
+  priority: string,
+): priority is ThreatEventPriority {
+  return Object.values(PRIORITY_LEVELS).includes(
+    priority as ThreatEventPriority,
+  );
+}
+
+export function isValidScoringStatus(
+  status: string,
+): status is ThreatEventScoringStatus {
+  return Object.values(SCORING_STATUSES).includes(
+    status as ThreatEventScoringStatus,
+  );
+}
+
+export function getPriorityLabel(priority: ThreatEventPriority) {
+  const labels: Record<ThreatEventPriority, string> = {
+    critical: "Critical",
+    high: "High",
+    low: "Low",
+    medium: "Medium",
+  };
+
+  return labels[priority];
+}
+
+export function getScoringStatusLabel(status: ThreatEventScoringStatus) {
+  const labels: Record<ThreatEventScoringStatus, string> = {
+    scored: "Scored",
+    unscored: "Unscored",
+  };
+
+  return labels[status];
 }

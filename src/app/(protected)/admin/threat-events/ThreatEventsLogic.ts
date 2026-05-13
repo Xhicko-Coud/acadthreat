@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { Eye } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { CheckCircle2, Eye, RotateCcw, Search, ShieldX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { api } from "@convex/_generated/api";
@@ -87,6 +87,11 @@ export type ThreatEventIndicatorContext = {
 export type ThreatEventDetailRecord = ThreatEventRecord & {
   indicator: ThreatEventIndicatorContext | null;
   normalizedEvent: ThreatEventNormalizedContext | null;
+};
+
+export type PendingThreatEventStatusUpdate = {
+  nextStatus: ThreatEventStatus;
+  threatEvent: ThreatEventRecord;
 };
 
 export function formatThreatEventTypeLabel(eventType: string) {
@@ -181,6 +186,9 @@ export function formatThreatEventTime(timestamp: number) {
 
 export function useThreatEventsLogic() {
   const { showNotification } = useNotifications();
+  const updateThreatEventStatusMutation = useMutation(
+    api.mutations.threatEvents.updateThreatEventStatus,
+  );
   const [statusFilter, setStatusFilter] = useState<ThreatEventStatus | "all">(
     "all",
   );
@@ -201,6 +209,9 @@ export function useThreatEventsLogic() {
   const [selectedThreatEvent, setSelectedThreatEvent] =
     useState<ThreatEventRecord | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [pendingStatusUpdate, setPendingStatusUpdate] =
+    useState<PendingThreatEventStatusUpdate | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const queryResult = useQuery(api.queries.threatEvents.listThreatEvents, {
     indicatorType:
@@ -295,11 +306,15 @@ export function useThreatEventsLogic() {
   const isInitialLoading = !hasLoadedInitialData && isLoading;
   const isTableLoading = hasLoadedInitialData && queryResult === undefined;
   const hasAccess = contextResult?.status === "success";
+  const capabilities =
+    contextResult?.status === "success" ? contextResult.capabilities : null;
   const detailedThreatEvent =
     detailResult?.status === "success"
       ? (detailResult.threatEvent as ThreatEventDetailRecord)
       : selectedThreatEvent;
   const isDetailsLoading = isDetailsOpen && detailResult === undefined;
+  const canUpdateThreatEventStatus =
+    capabilities?.canUpdateThreatEventStatus ?? false;
 
   function openThreatEventDetails(threatEvent: ThreatEventRecord) {
     setSelectedThreatEvent(threatEvent);
@@ -320,17 +335,110 @@ export function useThreatEventsLogic() {
     setIsDetailsOpen(true);
   }
 
+  function requestStatusUpdate(
+    threatEvent: ThreatEventRecord,
+    nextStatus: ThreatEventStatus,
+  ) {
+    if (!canUpdateThreatEventStatus || threatEvent.status === nextStatus) {
+      return;
+    }
+
+    setPendingStatusUpdate({ nextStatus, threatEvent });
+  }
+
+  function cancelStatusUpdate() {
+    setPendingStatusUpdate(null);
+  }
+
+  async function confirmStatusUpdate() {
+    if (!pendingStatusUpdate) {
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+
+    try {
+      const result = await updateThreatEventStatusMutation({
+        status: pendingStatusUpdate.nextStatus,
+        threatEventId: pendingStatusUpdate.threatEvent.id as Id<"threatEvents">,
+      });
+
+      if (result.status === "updated") {
+        showNotification({
+          description: "The threat event status was updated.",
+          title: "Status updated",
+          variant: "success",
+        });
+        setPendingStatusUpdate(null);
+        return;
+      }
+
+      showNotification(getStatusUpdateNotification(result.status));
+
+      if (result.status === "unchanged") {
+        setPendingStatusUpdate(null);
+      }
+    } catch {
+      showNotification(getStatusUpdateNotification("failed"));
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  }
+
   function getThreatEventActions(event: ThreatEventRecord): RowAction[] {
-    return [
+    const actions: RowAction[] = [
       {
         icon: Eye,
         label: "View details",
         onClick: () => openThreatEventDetails(event),
       },
     ];
+
+    if (!canUpdateThreatEventStatus) {
+      return actions;
+    }
+
+    if (event.status !== "open") {
+      actions.push({
+        icon: RotateCcw,
+        label: "Reopen",
+        onClick: () => requestStatusUpdate(event, "open"),
+      });
+    }
+
+    if (event.status !== "investigating") {
+      actions.push({
+        icon: Search,
+        label: "Mark as investigating",
+        onClick: () => requestStatusUpdate(event, "investigating"),
+      });
+    }
+
+    if (event.status !== "resolved") {
+      actions.push({
+        icon: CheckCircle2,
+        label: "Mark as resolved",
+        onClick: () => requestStatusUpdate(event, "resolved"),
+        variant: "success",
+      });
+    }
+
+    if (event.status !== "false_positive") {
+      actions.push({
+        icon: ShieldX,
+        label: "Mark as false positive",
+        onClick: () => requestStatusUpdate(event, "false_positive"),
+        variant: "destructive",
+      });
+    }
+
+    return actions;
   }
 
   return {
+    cancelStatusUpdate,
+    canUpdateThreatEventStatus,
+    confirmStatusUpdate,
     detailedThreatEvent,
     getThreatEventActions,
     handleDetailsOpenChange,
@@ -340,6 +448,8 @@ export function useThreatEventsLogic() {
     isDetailsOpen,
     isInitialLoading,
     isTableLoading,
+    isUpdatingStatus,
+    pendingStatusUpdate,
     selectedThreatEvent,
     setIndicatorTypeFilter,
     setSeverityFilter,
@@ -350,6 +460,46 @@ export function useThreatEventsLogic() {
     statusFilter,
     threatEvents,
   };
+}
+
+function getStatusUpdateNotification(status: string) {
+  const messages: Record<
+    string,
+    { description: string; title: string; variant: "error" | "info" | "success" }
+  > = {
+    failed: {
+      description: "The threat event status could not be updated. Try again.",
+      title: "Status update failed",
+      variant: "error",
+    },
+    forbidden: {
+      description: "Your account cannot update threat event statuses.",
+      title: "Action not allowed",
+      variant: "error",
+    },
+    invalid_input: {
+      description: "The requested threat event status is not valid.",
+      title: "Invalid status",
+      variant: "error",
+    },
+    not_found: {
+      description: "The selected threat event could not be found.",
+      title: "Threat event not found",
+      variant: "error",
+    },
+    unchanged: {
+      description: "The threat event already has that status.",
+      title: "No change needed",
+      variant: "info",
+    },
+    unauthenticated: {
+      description: "Your session is not authorized to update threat events.",
+      title: "Action not allowed",
+      variant: "error",
+    },
+  };
+
+  return messages[status] ?? messages.failed;
 }
 
 function formatFallbackLabel(value: string) {

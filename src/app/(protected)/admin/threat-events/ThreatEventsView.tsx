@@ -2,6 +2,7 @@ import { AdminActionSheet } from "@/components/admin/AdminActionSheet";
 import { FilterDropdownMenu } from "@/components/admin/FilterDropdownMenu";
 
 import { ThreatEventDetails } from "./ThreatEventDetails";
+import { ThreatEventsDialogs } from "./ThreatEventsDialogs";
 import type { useThreatEventsLogic } from "./ThreatEventsLogic";
 import {
   formatThreatEventIndicatorTypeLabel,
@@ -14,6 +15,8 @@ import { ThreatEventsTable } from "./ThreatEventsTable";
 type ThreatEventsViewProps = ReturnType<typeof useThreatEventsLogic>;
 
 export function ThreatEventsView({
+  cancelStatusUpdate,
+  confirmStatusUpdate,
   detailedThreatEvent,
   getThreatEventActions,
   handleDetailsOpenChange,
@@ -21,6 +24,8 @@ export function ThreatEventsView({
   isDetailsLoading,
   isDetailsOpen,
   isTableLoading,
+  isUpdatingStatus,
+  pendingStatusUpdate,
   setIndicatorTypeFilter,
   setSeverityFilter,
   setSourceTypeFilter,
@@ -168,6 +173,13 @@ export function ThreatEventsView({
           threatEvent={detailedThreatEvent}
         />
       </AdminActionSheet>
+
+      <ThreatEventsDialogs
+        cancelStatusUpdate={cancelStatusUpdate}
+        confirmStatusUpdate={confirmStatusUpdate}
+        isUpdatingStatus={isUpdatingStatus}
+        pendingStatusUpdate={pendingStatusUpdate}
+      />
     </div>
   );
 }

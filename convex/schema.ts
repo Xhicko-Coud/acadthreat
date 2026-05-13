@@ -66,6 +66,38 @@ const threatEventStatusValidator = v.union(
   v.literal("false_positive"),
 );
 
+const threatEventPriorityValidator = v.union(
+  v.literal("low"),
+  v.literal("medium"),
+  v.literal("high"),
+  v.literal("critical"),
+);
+
+const threatEventScoringStatusValidator = v.union(
+  v.literal("unscored"),
+  v.literal("scored"),
+);
+
+const threatEventScoringFactorsValidator = v.object({
+  eventType: v.optional(v.string()),
+  frequencyCount: v.optional(v.number()),
+  indicatorConfidence: v.optional(v.number()),
+  indicatorSeverity: v.optional(v.string()),
+  isSimulated: v.optional(v.boolean()),
+  matchedField: v.optional(v.string()),
+  outcome: v.optional(v.string()),
+  scoreContributions: v.optional(
+    v.array(
+      v.object({
+        label: v.string(),
+        reason: v.string(),
+        value: v.number(),
+      }),
+    ),
+  ),
+  sourceType: v.optional(v.string()),
+});
+
 export default defineSchema({
   healthChecks: defineTable({
     message: v.string(),
@@ -185,6 +217,12 @@ export default defineSchema({
     indicatorValue: v.string(),
     matchedField: threatEventMatchedFieldValidator,
     severity: threatIndicatorSeverityValidator,
+    severityScore: v.optional(v.number()),
+    priority: v.optional(threatEventPriorityValidator),
+    scoringStatus: v.optional(threatEventScoringStatusValidator),
+    scoringReason: v.optional(v.string()),
+    scoringFactors: v.optional(threatEventScoringFactorsValidator),
+    scoredAt: v.optional(v.number()),
     confidence: v.number(),
     status: threatEventStatusValidator,
     correlationReason: v.string(),
@@ -199,9 +237,17 @@ export default defineSchema({
     .index("by_matchedIndicatorId", ["matchedIndicatorId"])
     .index("by_status", ["status"])
     .index("by_severity", ["severity"])
+    .index("by_priority", ["priority"])
+    .index("by_scoringStatus", ["scoringStatus"])
+    .index("by_severityScore", ["severityScore"])
     .index("by_sourceType", ["sourceType"])
     .index("by_detectedAt", ["detectedAt"])
     .index("by_status_and_detectedAt", ["status", "detectedAt"])
     .index("by_severity_and_detectedAt", ["severity", "detectedAt"])
+    .index("by_priority_and_detectedAt", ["priority", "detectedAt"])
+    .index("by_scoringStatus_and_detectedAt", [
+      "scoringStatus",
+      "detectedAt",
+    ])
     .index("by_sourceType_and_detectedAt", ["sourceType", "detectedAt"]),
 });

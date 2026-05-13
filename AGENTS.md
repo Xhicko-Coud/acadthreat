@@ -633,6 +633,41 @@ Rules:
 
 ---
 
+## 10.3 Threat Event Status Workflow Rule
+
+Threat event status changes are investigation workflow updates, not threat event edits.
+
+Rules:
+
+1. Threat event status may be updated only by admin/analyst.
+2. Viewer can view only.
+3. Status updates must use confirmation dialogs.
+4. Status updates must not modify correlation evidence.
+5. Status updates must not expose raw logs or raw payloads.
+6. Do not add edit/delete/create threat event actions.
+7. Use global/top-center notifications for action result.
+8. Keep detail sheets read-only unless explicitly approved otherwise.
+
+---
+
+## 10.4 Severity Scoring and Prioritization Rule
+
+Severity scoring prioritizes detected threats for analyst review.
+
+Rules:
+
+1. Severity scoring must be deterministic and explainable in V1.
+2. Do not use AI, ML, or opaque scoring unless explicitly approved in a later module.
+3. Scoring prioritizes detected threats; it does not remediate attacks.
+4. Do not add automated blocking, user disabling, or firewall changes.
+5. Do not allow users to manually edit scores.
+6. Scoring evidence must be safe and must not include raw payloads, secrets, tokens, stack traces, HMAC details, or backend internals.
+7. Score range is 0-100.
+8. Priority bands are low, medium, high, and critical.
+9. UI may display score or priority later, but scoring logic must remain backend-generated.
+
+---
+
 # 11. Detection and Scoring Rules
 
 Detection logic must be simple, traceable, and explainable.
