@@ -144,6 +144,13 @@ export default defineSchema({
     confidence: v.number(),
     source: v.optional(v.string()),
     description: v.optional(v.string()),
+    provider: v.optional(v.string()),
+    providerIndicatorId: v.optional(v.string()),
+    firstSeenAt: v.optional(v.number()),
+    lastSeenAt: v.optional(v.number()),
+    lastSyncedAt: v.optional(v.number()),
+    sourceUrl: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
     status: threatIndicatorStatusValidator,
     createdByUserId: v.string(),
     createdByEmail: v.string(),
@@ -159,6 +166,12 @@ export default defineSchema({
     .index("by_createdByUserId", ["createdByUserId"])
     .index("by_updatedByUserId", ["updatedByUserId"])
     .index("by_type_and_normalizedValue", ["type", "normalizedValue"])
+    .index("by_provider_and_providerIndicatorId", [
+      "provider",
+      "providerIndicatorId",
+    ])
+    .index("by_provider", ["provider"])
+    .index("by_lastSyncedAt", ["lastSyncedAt"])
     .index("by_status_and_createdAt", ["status", "createdAt"]),
   rawLogs: defineTable({
     sourceType: logSourceTypeValidator,

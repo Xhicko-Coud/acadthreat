@@ -12,8 +12,11 @@ import {
   formatIndicatorSeverityLabel,
   formatIndicatorStatusLabel,
   formatIndicatorTypeLabel,
+  formatIndicatorProviderLabel,
   type IndicatorRecord,
 } from "./IndicatorsLogic";
+
+const MAX_VALUE_DISPLAY_LENGTH = 50;
 
 export function IndicatorsTable({
   actions,
@@ -41,9 +44,22 @@ export function IndicatorsTable({
     {
       accessorKey: "value",
       header: "Value",
-      cell: ({ row }) => (
-        <span className="font-medium text-foreground">{row.original.value}</span>
-      ),
+      cell: ({ row }) => {
+        const value = row.original.value;
+        const displayValue =
+          value.length > MAX_VALUE_DISPLAY_LENGTH
+            ? `${value.slice(0, MAX_VALUE_DISPLAY_LENGTH)}...`
+            : value;
+
+        return (
+          <span
+            className="block max-w-[24rem] truncate font-medium text-foreground"
+            title={value}
+          >
+            {displayValue}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "type",
@@ -104,6 +120,15 @@ export function IndicatorsTable({
           </span>
         );
       },
+    },
+    {
+      accessorKey: "provider",
+      header: "Provider",
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap text-muted-foreground">
+          {formatIndicatorProviderLabel(row.original.provider)}
+        </span>
+      ),
     },
     {
       accessorKey: "source",

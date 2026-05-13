@@ -1,5 +1,5 @@
-import { DashboardView } from "./DashboardView";
+import { DashboardContainer } from "./DashboardContainer";
 
 export default function AdminDashboardPage() {
-  return <DashboardView />;
+  return <DashboardContainer />;
 }

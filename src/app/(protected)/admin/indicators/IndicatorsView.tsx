@@ -18,6 +18,8 @@ export function IndicatorsView({
   indicators,
   isSheetOpen,
   isTableLoading,
+  providerFilter,
+  setProviderFilter,
   setSeverityFilter,
   setStatusFilter,
   setTypeFilter,
@@ -48,6 +50,24 @@ export function IndicatorsView({
         actions={
           <FilterDropdownMenu
             groups={[
+              {
+                key: "provider",
+                label: "Provider",
+                onSelect: (value) =>
+                  setProviderFilter(value as "all" | "urlhaus" | "internal"),
+                options: [
+                  { label: "All providers", value: "all" },
+                  { label: "URLHaus", value: "urlhaus" },
+                  { label: "Internal/Demo", value: "internal" },
+                ],
+                value: providerFilter,
+                valueLabel:
+                  providerFilter === "all"
+                    ? "All providers"
+                    : providerFilter === "urlhaus"
+                      ? "URLHaus"
+                      : "Internal/Demo",
+              },
               {
                 key: "status",
                 label: "Status",

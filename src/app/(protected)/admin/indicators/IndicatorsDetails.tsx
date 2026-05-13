@@ -1,8 +1,10 @@
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 import {
+  formatIndicatorProviderLabel,
   formatIndicatorSeverityLabel,
   formatIndicatorStatusLabel,
   formatIndicatorTypeLabel,
@@ -28,6 +30,16 @@ export function IndicatorsDetails({
         year: "numeric",
       })
     : "";
+  const hasFeedMetadata = Boolean(
+    indicator?.provider ||
+      indicator?.providerIndicatorId ||
+      indicator?.firstSeenAt ||
+      indicator?.lastSeenAt ||
+      indicator?.lastSyncedAt ||
+      indicator?.sourceUrl ||
+      indicator?.tags.length,
+  );
+  const safeSourceUrl = getSafeSourceUrl(indicator?.sourceUrl);
 
   return (
     <div className="grid gap-5 py-4">
@@ -42,6 +54,82 @@ export function IndicatorsDetails({
           value={indicator?.value ?? ""}
         />
       </div>
+
+      {hasFeedMetadata ? (
+        <div className="grid gap-4 rounded-lg border border-primary/10 bg-primary/5 p-4">
+          <div>
+            <h3 className="text-sm font-semibold text-primary">
+              Feed metadata
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-primary/70">
+              Imported indicator metadata is shown for review only.
+            </p>
+          </div>
+
+          <FeedMetadataField
+            id="indicator-provider"
+            label="Provider"
+            value={formatIndicatorProviderLabel(indicator?.provider ?? null)}
+          />
+          <FeedMetadataField
+            id="indicator-provider-id"
+            label="Provider Indicator ID"
+            value={indicator?.providerIndicatorId ?? "-"}
+          />
+          <FeedMetadataField
+            id="indicator-first-seen"
+            label="First Seen"
+            value={formatOptionalDateTime(indicator?.firstSeenAt)}
+          />
+          <FeedMetadataField
+            id="indicator-last-seen"
+            label="Last Seen"
+            value={formatOptionalDateTime(indicator?.lastSeenAt)}
+          />
+          <FeedMetadataField
+            id="indicator-last-synced"
+            label="Last synced"
+            value={formatOptionalDateTime(indicator?.lastSyncedAt)}
+          />
+
+          <div className="grid gap-1.5">
+            <Label
+              className="text-sm font-medium text-primary"
+              htmlFor="indicator-source-url"
+            >
+              Source URL
+            </Label>
+            {safeSourceUrl ? (
+              <a
+                className="break-all rounded-3xl bg-input/50 px-3 py-2 text-sm text-primary underline-offset-4 hover:underline"
+                href={safeSourceUrl}
+                id="indicator-source-url"
+                rel="noreferrer"
+                target="_blank"
+              >
+                {safeSourceUrl}
+              </a>
+            ) : (
+              <Input disabled id="indicator-source-url" readOnly value="-" />
+            )}
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label className="text-sm font-medium text-primary">Tags</Label>
+            {indicator?.tags.length ? (
+              <div className="flex flex-wrap gap-2">
+                {indicator.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <Input disabled readOnly value="-" />
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-1.5">
         <Label className="text-sm font-medium text-primary" htmlFor="indicator-type">
@@ -171,4 +259,55 @@ export function IndicatorsDetails({
       </p>
     </div>
   );
+}
+
+function FeedMetadataField({
+  id,
+  label,
+  value,
+}: {
+  id: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label className="text-sm font-medium text-primary" htmlFor={id}>
+        {label}
+      </Label>
+      <Input disabled id={id} readOnly value={value} />
+    </div>
+  );
+}
+
+function formatOptionalDateTime(timestamp: number | null | undefined) {
+  if (!timestamp) {
+    return "-";
+  }
+
+  return new Date(timestamp).toLocaleString("en-US", {
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getSafeSourceUrl(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(value);
+
+    if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+      return null;
+    }
+
+    return value;
+  } catch {
+    return null;
+  }
 }

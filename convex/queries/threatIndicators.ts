@@ -15,6 +15,7 @@ import {
 export const listThreatIndicators = query({
   args: {
     search: v.optional(v.string()),
+    provider: v.optional(v.union(v.literal("urlhaus"), v.literal("internal"))),
     severity: v.optional(
       v.union(
         v.literal(THREAT_INDICATOR_SEVERITIES.low),
@@ -49,6 +50,7 @@ export const listThreatIndicators = query({
     }
 
     const records = await loadThreatIndicators(ctx, {
+      provider: args.provider,
       severity: args.severity,
       status: args.status,
       type: args.type,
@@ -66,6 +68,14 @@ export const listThreatIndicators = query({
         return false;
       }
 
+      if (args.provider === "urlhaus" && indicator.provider !== "urlhaus") {
+        return false;
+      }
+
+      if (args.provider === "internal" && indicator.provider) {
+        return false;
+      }
+
       return true;
     });
 
@@ -79,6 +89,8 @@ export const listThreatIndicators = query({
             indicator.status,
             indicator.source ?? "",
             indicator.description ?? "",
+            indicator.provider ?? "",
+            indicator.tags?.join(" ") ?? "",
             indicator.createdByEmail,
             indicator.updatedByEmail,
           ]
@@ -97,8 +109,15 @@ export const listThreatIndicators = query({
         createdAt: indicator.createdAt,
         createdByEmail: indicator.createdByEmail,
         description: indicator.description ?? null,
+        firstSeenAt: indicator.firstSeenAt ?? null,
+        lastSeenAt: indicator.lastSeenAt ?? null,
+        lastSyncedAt: indicator.lastSyncedAt ?? null,
+        provider: indicator.provider ?? null,
+        providerIndicatorId: indicator.providerIndicatorId ?? null,
         severity: indicator.severity,
         source: indicator.source ?? null,
+        sourceUrl: indicator.sourceUrl ?? null,
+        tags: indicator.tags ?? [],
         status: indicator.status,
         type: indicator.type,
         updatedAt: indicator.updatedAt,
@@ -137,8 +156,15 @@ export const getThreatIndicatorDetail = query({
         createdAt: indicator.createdAt,
         createdByEmail: indicator.createdByEmail,
         description: indicator.description ?? null,
+        firstSeenAt: indicator.firstSeenAt ?? null,
+        lastSeenAt: indicator.lastSeenAt ?? null,
+        lastSyncedAt: indicator.lastSyncedAt ?? null,
+        provider: indicator.provider ?? null,
+        providerIndicatorId: indicator.providerIndicatorId ?? null,
         severity: indicator.severity,
         source: indicator.source ?? null,
+        sourceUrl: indicator.sourceUrl ?? null,
+        tags: indicator.tags ?? [],
         status: indicator.status,
         type: indicator.type,
         updatedAt: indicator.updatedAt,
@@ -217,6 +243,7 @@ async function getThreatIndicatorReadContext(
 async function loadThreatIndicators(
   ctx: QueryCtx,
   filters: {
+    provider?: "urlhaus" | "internal";
     severity?: ThreatIndicatorSeverity;
     status?: ThreatIndicatorStatus;
     type?: ThreatIndicatorType;

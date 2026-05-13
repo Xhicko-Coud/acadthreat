@@ -114,7 +114,6 @@ export function AppHeader({
               {getRoleLabel(profile.role)}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>Profile details coming soon</DropdownMenuItem>
             <SignOutButton />
           </DropdownMenuContent>
         </DropdownMenu>

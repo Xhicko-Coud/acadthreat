@@ -27,15 +27,24 @@ export type ThreatIndicatorStatus =
   | "archived"
   | "false_positive";
 
+export type IndicatorProviderFilter = "all" | "urlhaus" | "internal";
+
 export type IndicatorRecord = {
   id: string;
   confidence: number;
   createdAt: number;
   createdByEmail: string;
   description: string | null;
+  firstSeenAt: number | null;
+  lastSeenAt: number | null;
+  lastSyncedAt: number | null;
+  provider: string | null;
+  providerIndicatorId?: string | null;
   severity: ThreatIndicatorSeverity;
   source: string | null;
+  sourceUrl?: string | null;
   status: ThreatIndicatorStatus;
+  tags: string[];
   type: ThreatIndicatorType;
   updatedAt: number;
   updatedByEmail: string;
@@ -80,6 +89,14 @@ export function formatIndicatorStatusLabel(status: ThreatIndicatorStatus) {
   return labels[status];
 }
 
+export function formatIndicatorProviderLabel(provider: string | null) {
+  if (provider === "urlhaus") {
+    return "URLHaus";
+  }
+
+  return "Internal/Demo";
+}
+
 export function useIndicatorsLogic() {
   const { showNotification } = useNotifications();
   const [statusFilter, setStatusFilter] = useState<ThreatIndicatorStatus | "all">(
@@ -91,6 +108,8 @@ export function useIndicatorsLogic() {
   const [severityFilter, setSeverityFilter] = useState<
     ThreatIndicatorSeverity | "all"
   >("all");
+  const [providerFilter, setProviderFilter] =
+    useState<IndicatorProviderFilter>("all");
   const [sheetMode, setSheetMode] = useState<IndicatorSheetMode>("view");
   const [sheetIndicator, setSheetIndicator] = useState<IndicatorRecord | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -101,6 +120,7 @@ export function useIndicatorsLogic() {
   const [lastAlertKey, setLastAlertKey] = useState<string | null>(null);
 
   const queryResult = useQuery(api.queries.threatIndicators.listThreatIndicators, {
+    provider: providerFilter === "all" ? undefined : providerFilter,
     severity: severityFilter === "all" ? undefined : severityFilter,
     status: statusFilter === "all" ? undefined : statusFilter,
     type: typeFilter === "all" ? undefined : typeFilter,
@@ -220,9 +240,11 @@ export function useIndicatorsLogic() {
     isSheetOpen,
     isTableLoading,
     setSeverityFilter,
+    setProviderFilter,
     setStatusFilter,
     setTypeFilter,
     severityFilter,
+    providerFilter,
     sheetIndicator,
     sheetMode,
     statusFilter,
