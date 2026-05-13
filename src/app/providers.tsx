@@ -9,7 +9,21 @@ import { NotificationProvider } from "@/components/providers/NotificationProvide
 import { authClient } from "@/lib/auth-client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-export function Providers({
+export function AppProviders({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <AuthBridgeProvider>
+      <NotificationProvider>
+        <TooltipProvider>{children}</TooltipProvider>
+      </NotificationProvider>
+    </AuthBridgeProvider>
+  );
+}
+
+export function ProtectedProviders({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -28,11 +42,7 @@ export function Providers({
 
   return (
     <ConvexBetterAuthProvider authClient={authClient} client={convex}>
-      <AuthBridgeProvider>
-        <NotificationProvider>
-          <TooltipProvider>{children}</TooltipProvider>
-        </NotificationProvider>
-      </AuthBridgeProvider>
+      {children}
     </ConvexBetterAuthProvider>
   );
 }

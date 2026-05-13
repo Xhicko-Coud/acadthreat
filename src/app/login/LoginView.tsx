@@ -1,12 +1,10 @@
 "use client";
 
-import { useMutation } from "convex/react";
 import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { flushSync } from "react-dom";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { api } from "@convex/_generated/api";
 import { useAuthBridge } from "@/components/providers/AuthBridgeProvider";
 import { AppAlert } from "@/components/shared/AppAlert";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -19,7 +17,6 @@ import { Label } from "@/components/ui/label";
 export function LoginView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const logAuthDiagnostic = useMutation(api.auth.logAuthDiagnostic.logAuthDiagnostic);
   const { hideAuthBridge, showAuthBridge } = useAuthBridge();
   const { showNotificationAfterNavigation } = useNotifications();
   const [email, setEmail] = useState("");
@@ -47,30 +44,6 @@ export function LoginView() {
     setFeedback(safeFeedback);
   }, [searchParams]);
 
-  async function recordAuthDiagnostic(input: {
-    event: "login_failed" | "login_exception";
-    errorCode?: string;
-    errorStatus?: number;
-    safeReasonCategory:
-      | "auth_server_unreachable"
-      | "invalid_credentials"
-      | "unknown_auth_error";
-  }) {
-    try {
-      await logAuthDiagnostic({
-        emailDomain: getEmailDomain(email),
-        errorCode: input.errorCode,
-        errorStatus: input.errorStatus,
-        event: input.event,
-        maskedEmail: maskEmail(email),
-        safeReasonCategory: input.safeReasonCategory,
-        source: "login_page",
-      });
-    } catch {
-      // Diagnostic logging must never block or change login UX.
-    }
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -94,13 +67,6 @@ export function LoginView() {
 
       if (error) {
         const safeError = toSafeAuthError(error);
-
-        await recordAuthDiagnostic({
-          errorCode: safeError.errorCode,
-          errorStatus: safeError.errorStatus,
-          event: "login_failed",
-          safeReasonCategory: categorizeAuthFailure(safeError),
-        });
 
         setFeedback({
           description: "Check your email and password and try again.",
@@ -126,11 +92,6 @@ export function LoginView() {
       router.replace("/admin/dashboard");
       router.refresh();
     } catch {
-      await recordAuthDiagnostic({
-        event: "login_exception",
-        safeReasonCategory: "auth_server_unreachable",
-      });
-
       hideAuthBridge();
       setFeedback({
         description: "The authentication server could not be reached. Try again.",
@@ -260,22 +221,6 @@ export function LoginView() {
   );
 }
 
-function maskEmail(email: string) {
-  const normalizedEmail = email.trim().toLowerCase();
-
-  if (!normalizedEmail.includes("@")) {
-    return undefined;
-  }
-
-  const [localPart, domain] = normalizedEmail.split("@");
-
-  if (!localPart || !domain) {
-    return undefined;
-  }
-
-  return `${localPart.slice(0, 1)}***@${domain}`;
-}
-
 function getLoginFieldErrors(email: string, password: string) {
   const normalizedEmail = email.trim();
   const normalizedPassword = password.trim();
@@ -284,13 +229,6 @@ function getLoginFieldErrors(email: string, password: string) {
     email: normalizedEmail ? undefined : "Email is required.",
     password: normalizedPassword ? undefined : "Password is required.",
   };
-}
-
-function getEmailDomain(email: string) {
-  const normalizedEmail = email.trim().toLowerCase();
-  const [, domain] = normalizedEmail.split("@");
-
-  return domain || undefined;
 }
 
 function toSafeAuthError(error: unknown) {
@@ -315,31 +253,6 @@ function toSafeAuthError(error: unknown) {
     message:
       typeof candidate.message === "string" ? candidate.message : undefined,
   };
-}
-
-function categorizeAuthFailure(error: {
-  errorCode?: string;
-  errorStatus?: number;
-  message?: string;
-}): "invalid_credentials" | "unknown_auth_error" {
-  if (error.errorStatus === 401 || error.errorStatus === 403) {
-    return "invalid_credentials";
-  }
-
-  const normalizedCode = error.errorCode?.toLowerCase();
-  const normalizedMessage = error.message?.toLowerCase();
-
-  if (
-    normalizedCode?.includes("invalid") ||
-    normalizedCode?.includes("credential") ||
-    normalizedMessage?.includes("invalid") ||
-    normalizedMessage?.includes("password") ||
-    normalizedMessage?.includes("credential")
-  ) {
-    return "invalid_credentials";
-  }
-
-  return "unknown_auth_error";
 }
 
 function getSafeReasonFeedback(reason: string | null) {

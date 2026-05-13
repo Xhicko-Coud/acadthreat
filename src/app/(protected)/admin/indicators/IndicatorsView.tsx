@@ -1,25 +1,20 @@
-import { Filter, ShieldX } from "lucide-react";
-
 import { AdminActionSheet } from "@/components/admin/AdminActionSheet";
-import { EmptyState } from "@/components/shared/EmptyState";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FilterDropdownMenu } from "@/components/admin/FilterDropdownMenu";
 
 import { IndicatorsDetails } from "./IndicatorsDetails";
 import { IndicatorsTable } from "./IndicatorsTable";
 import type { useIndicatorsLogic } from "./IndicatorsLogic";
+import {
+  formatIndicatorSeverityLabel,
+  formatIndicatorStatusLabel,
+  formatIndicatorTypeLabel,
+} from "./IndicatorsLogic";
 
 type IndicatorsViewProps = ReturnType<typeof useIndicatorsLogic>;
 
 export function IndicatorsView({
   getIndicatorActions,
   handleSheetOpenChange,
-  hasAccess,
   indicators,
   isSheetOpen,
   isTableLoading,
@@ -49,100 +44,96 @@ export function IndicatorsView({
         </div>
       </section>
 
-      {!hasAccess ? (
-        <EmptyState
-          description="Your account does not currently have permission to review protected threat intelligence indicator records."
-          icon={ShieldX}
-          title="Indicator access restricted"
-        />
-      ) : null}
-
-      {hasAccess ? (
-        <IndicatorsTable
+      <IndicatorsTable
         actions={
-          <>
-            <Select
-              onValueChange={(value) =>
-                setStatusFilter(
-                  value as "active" | "archived" | "false_positive" | "all",
-                )
-              }
-              value={statusFilter}
-            >
-              <SelectTrigger className="h-10 w-full rounded-lg border-primary/20 bg-primary/[0.04] text-primary shadow-sm hover:border-primary/35 hover:bg-primary/[0.08] focus-visible:border-primary sm:w-44">
-                <Filter className="size-4 text-primary/70" />
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border border-primary/10 shadow-xl">
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="active">Active only</SelectItem>
-                <SelectItem value="archived">Archived only</SelectItem>
-                <SelectItem value="false_positive">False positive only</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              onValueChange={(value) =>
-                setTypeFilter(
-                  value as
-                    | "ip"
-                    | "domain"
-                    | "url"
-                    | "hash"
-                    | "email"
-                    | "keyword"
-                    | "all",
-                )
-              }
-              value={typeFilter}
-            >
-              <SelectTrigger className="h-10 w-full rounded-lg border-primary/20 bg-primary/[0.04] text-primary shadow-sm hover:border-primary/35 hover:bg-primary/[0.08] focus-visible:border-primary sm:w-40">
-                <Filter className="size-4 text-primary/70" />
-                <SelectValue placeholder="Filter type" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border border-primary/10 shadow-xl">
-                <SelectItem value="all">All types</SelectItem>
-                <SelectItem value="ip">IP</SelectItem>
-                <SelectItem value="domain">Domain</SelectItem>
-                <SelectItem value="url">URL</SelectItem>
-                <SelectItem value="hash">Hash</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-                <SelectItem value="keyword">Keyword</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              onValueChange={(value) =>
-                setSeverityFilter(
-                  value as
-                    | "low"
-                    | "medium"
-                    | "high"
-                    | "critical"
-                    | "all",
-                )
-              }
-              value={severityFilter}
-            >
-              <SelectTrigger className="h-10 w-full rounded-lg border-primary/20 bg-primary/[0.04] text-primary shadow-sm hover:border-primary/35 hover:bg-primary/[0.08] focus-visible:border-primary sm:w-44">
-                <Filter className="size-4 text-primary/70" />
-                <SelectValue placeholder="Filter severity" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border border-primary/10 shadow-xl">
-                <SelectItem value="all">All severities</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-              </SelectContent>
-            </Select>
-          </>
+          <FilterDropdownMenu
+            groups={[
+              {
+                key: "status",
+                label: "Status",
+                onSelect: (value) =>
+                  setStatusFilter(
+                    value as
+                      | "active"
+                      | "archived"
+                      | "false_positive"
+                      | "all",
+                  ),
+                options: [
+                  { label: "All statuses", value: "all" },
+                  { label: "Active only", value: "active" },
+                  { label: "Archived only", value: "archived" },
+                  { label: "False positive only", value: "false_positive" },
+                ],
+                value: statusFilter,
+                valueLabel:
+                  statusFilter === "all"
+                    ? "All statuses"
+                    : formatIndicatorStatusLabel(statusFilter),
+              },
+              {
+                key: "type",
+                label: "Type",
+                onSelect: (value) =>
+                  setTypeFilter(
+                    value as
+                      | "ip"
+                      | "domain"
+                      | "url"
+                      | "hash"
+                      | "email"
+                      | "keyword"
+                      | "all",
+                  ),
+                options: [
+                  { label: "All types", value: "all" },
+                  { label: "IP", value: "ip" },
+                  { label: "Domain", value: "domain" },
+                  { label: "URL", value: "url" },
+                  { label: "Hash", value: "hash" },
+                  { label: "Email", value: "email" },
+                  { label: "Keyword", value: "keyword" },
+                ],
+                value: typeFilter,
+                valueLabel:
+                  typeFilter === "all"
+                    ? "All types"
+                    : formatIndicatorTypeLabel(typeFilter),
+              },
+              {
+                key: "severity",
+                label: "Severity",
+                onSelect: (value) =>
+                  setSeverityFilter(
+                    value as
+                      | "low"
+                      | "medium"
+                      | "high"
+                      | "critical"
+                      | "all",
+                  ),
+                options: [
+                  { label: "All severities", value: "all" },
+                  { label: "Low", value: "low" },
+                  { label: "Medium", value: "medium" },
+                  { label: "High", value: "high" },
+                  { label: "Critical", value: "critical" },
+                ],
+                value: severityFilter,
+                valueLabel:
+                  severityFilter === "all"
+                    ? "All severities"
+                    : formatIndicatorSeverityLabel(severityFilter),
+              },
+            ]}
+          />
         }
         data={indicators}
         description="Protected indicator records available for review and lifecycle management."
         getIndicatorActions={getIndicatorActions}
         isLoading={isTableLoading}
         title="Indicator Directory"
-        />
-      ) : null}
+      />
 
       <AdminActionSheet
         cancelText="Close"

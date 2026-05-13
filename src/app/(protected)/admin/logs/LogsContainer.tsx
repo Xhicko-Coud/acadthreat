@@ -1,23 +1,26 @@
 "use client";
 
-import { useQuery } from "convex/react";
-
-import { api } from "@convex/_generated/api";
+import { AccessRestrictedState } from "@/components/auth/AccessRestrictedState";
 
 import { LogsSkeleton } from "./LogsSkeleton";
+import { useLogsLogic } from "./LogsLogic";
 import { LogsView } from "./LogsView";
 
 export function LogsContainer() {
-  const contextResult = useQuery(api.queries.logs.getLogIngestionContext);
+  const logic = useLogsLogic();
 
-  const isInitialLoading = contextResult === undefined;
-
-  if (isInitialLoading) {
+  if (logic.isInitialLoading) {
     return <LogsSkeleton />;
   }
 
-  const hasAccess = contextResult.status === "success";
-  const capabilities = hasAccess ? contextResult.capabilities : null;
+  if (!logic.hasAccess) {
+    return (
+      <AccessRestrictedState
+        description="Your account does not have permission to view this section."
+        title="Access restricted"
+      />
+    );
+  }
 
-  return <LogsView capabilities={capabilities} hasAccess={hasAccess} />;
+  return <LogsView {...logic} />;
 }

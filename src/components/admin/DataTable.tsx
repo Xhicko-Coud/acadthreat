@@ -91,9 +91,9 @@ export function DataTable<TData>({
       )}
     >
       {title || actions ? (
-        <div className="flex flex-col gap-4 border-b border-primary/10 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 border-b border-primary/10 px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
           {title ? (
-            <div>
+            <div className="max-w-3xl lg:min-w-0 lg:flex-1">
               <h2 className="text-lg font-semibold text-foreground">{title}</h2>
               {description ? (
                 <p className="mt-1 text-sm text-primary/65">{description}</p>
@@ -101,7 +101,9 @@ export function DataTable<TData>({
             </div>
           ) : null}
           {actions ? (
-            <div className="flex flex-wrap items-center gap-3">{actions}</div>
+            <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto lg:flex-none lg:justify-end">
+              {actions}
+            </div>
           ) : null}
         </div>
       ) : null}

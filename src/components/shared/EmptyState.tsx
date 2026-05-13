@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type EmptyStateProps = {
@@ -29,10 +29,6 @@ export function EmptyState({
           </p>
         </div>
       </CardHeader>
-      <CardContent className="pt-0 text-sm text-muted-foreground">
-        Additional dashboard modules will connect data and actions here in later
-        implementation chunks.
-      </CardContent>
     </Card>
   );
 }

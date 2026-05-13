@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ProtectedProviders } from "@/app/providers";
 import { AppShell } from "@/components/layout/AppShell";
 import { api } from "@convex/_generated/api";
 import { fetchAuthQuery } from "@/lib/auth-server";
@@ -29,5 +30,9 @@ export default async function AdminLayout({
     redirect("/login?reason=access-denied");
   }
 
-  return <AppShell profile={accessStatus.profile}>{children}</AppShell>;
+  return (
+    <ProtectedProviders>
+      <AppShell profile={accessStatus.profile}>{children}</AppShell>
+    </ProtectedProviders>
+  );
 }

@@ -551,6 +551,31 @@ Request received
 
 ---
 
+## 9.1 Trusted Log Ingestion Rule
+
+External log ingestion must use the HMAC-protected HTTP endpoint.
+
+Rules:
+
+1. Public unauthenticated ingestion is forbidden.
+2. The HTTP endpoint must validate signature, timestamp, payload size, sourceType, and JSON body before calling the ingestion pipeline.
+3. HMAC should sign `${timestamp}.${rawBody}`.
+4. Timestamp replay window should be limited, default ±5 minutes.
+5. HTTP ingestion must call the existing internal ingestion mutation and must not manually insert `rawLogs` or `normalizedEvents`.
+6. Convex HTTP actions must not import Node APIs such as `node:crypto`.
+7. Convex HTTP actions must not use `"use node"`.
+8. HTTP action files must not be placed under `convex/actions`.
+9. The `convex/actions` folder is only for regular actions, especially Node actions.
+10. HTTP actions should live in a neutral folder such as `convex/http/` or another non-actions folder.
+11. Use Web Crypto APIs for HMAC inside HTTP actions.
+12. `"use node"` is only for regular action files that export `action` functions.
+13. Node runtime files must not export `httpAction`, `query`, `mutation`, or `internalMutation`.
+14. Do not expose secrets, stack traces, raw parser errors, or raw payloads in responses.
+15. Do not add ingestion UI unless explicitly approved.
+16. Module 04 V1 supports authentication and firewall logs only.
+
+---
+
 # 10. Threat Intelligence Rules
 
 Threat intelligence indicators must be normalized before storage and matching.
@@ -976,6 +1001,56 @@ use-notifications.ts
 
 ---
 
+## 17.4.1 Auth Provider Boundary Rule
+
+Public routes such as `/login` must remain lightweight.
+
+Rules:
+
+1. Do not mount protected admin shell, protected Convex queries, or unnecessary Convex auth-token fetching on public routes.
+2. Auth/session checks on `/login` must be minimal and intentional.
+3. Avoid duplicate `useSession` or `useConvexAuth` calls across login container, view, or provider layers.
+4. Convex authenticated providers and protected profile or role queries should live at the protected route boundary unless the working local or reference pattern requires otherwise.
+5. Protected route enforcement must remain server or backend enforced; moving providers must not weaken authorization.
+6. Before changing auth provider placement, compare with the working local or reference auth boundary.
+7. Do not add public route auth polling or repeated session checks.
+
+---
+
+## 17.4.2 Protected Module Access Guard Rule
+
+Restricted users must not see normal protected module page content.
+
+Rules:
+
+1. Do not render `access denied` or `access restricted` messages as embedded cards inside the normal table or page layout.
+2. Use `AccessRestrictedState` as the dedicated route or page guard screen unless an approved shared replacement exists.
+3. `AccessRestrictedState` must replace the protected module page content, not appear inside it.
+4. Guard screens should provide safe next actions such as `Go to dashboard` and `Sign out`.
+5. Never mention internal roadmap or chunk language in user-facing restricted screens.
+6. Backend authorization must still enforce access; frontend guards are UX only.
+7. Apply this pattern to Logs, Users, Indicators, Threat Events, Settings, and future protected modules.
+8. Do not use embedded `AppAlert` for restricted access.
+
+---
+
+## 17.4.3 Restricted Access UI Rule
+
+Rules:
+
+1. Never render restricted or access-denied messages as embedded cards inside normal protected module pages.
+2. Never use copy like `Log access restricted`, `Your account does not currently have permission to review log events`, or `Additional dashboard modules will connect data and actions here in later implementation chunks`.
+3. Never mention implementation chunks, future chunks, internal roadmap, or development status in user-facing restricted-access UI.
+4. Restricted users must not see normal protected module page content.
+5. Use `AccessRestrictedState` for restricted protected modules.
+6. `AccessRestrictedState` must replace the module page content, not appear inside it.
+7. `AccessRestrictedState` should provide safe next actions: `Go to dashboard` and `Sign out`.
+8. Backend authorization must still enforce access.
+9. Apply this rule to Logs, Users, Indicators, Dashboard, Threat Events, Settings, and all future protected modules.
+10. Do not use embedded `AppAlert` for restricted access.
+
+---
+
 # 17.5 Form Validation Rule
 
 All newly created forms and any materially rebuilt forms must use `react-hook-form` with `zod` validation through `zodResolver`.
@@ -1040,6 +1115,59 @@ Rules:
 6. Prevent repeated alert spam on re-renders.
 7. Before adding alert logic, compare with the existing completed local pattern.
 8. This applies to Users, Indicators, Logs, Threat Events, Dashboard, Settings, and all future admin pages.
+
+---
+
+## 17.9 Admin Search Deferral Rule
+
+Do not add page-level search controls to admin pages for now.
+
+Rules:
+
+1. Do not add search inputs, search bars, or free-text filter boxes to new or updated admin pages unless the user explicitly requests search for that exact page.
+2. Prefer scoped select filters and safe structured filters only while search is deferred.
+3. If backend search support already exists, do not surface it in the page UI unless explicitly approved for the current task.
+4. This applies to Users, Indicators, Logs, Threat Events, Dashboard, Settings, and future admin pages until the rule is updated.
+
+---
+
+## 17.10 Admin Table Filter UX Rule
+
+Admin table filters must stay compact and reusable.
+
+Rules:
+
+1. Admin tables with more than 2 filters must use the reusable `FilterDropdownMenu` pattern.
+2. On mobile and constrained layouts, all admin table filters must collapse into `FilterDropdownMenu`, even if there are only 1–2 filters.
+3. Do not crowd page headers or table control rows with many visible select boxes.
+4. Do not allow filters to wrap into messy multi-row desktop or tablet layouts.
+5. Header and action areas should stay stable; filter controls should collapse before they break the layout.
+6. Search may remain visible as the primary search control only if it does not clutter the layout.
+7. The first level of `FilterDropdownMenu` must show filter categories.
+8. The forward or right arrow means the category opens a second-level option list.
+9. The second level must list all available options for that filter, not only the current selected value.
+10. Clicking an option must apply it immediately to the table.
+11. The selected option should be visibly marked.
+12. `value` means the current selected value; `options` means all selectable values. Do not confuse them.
+13. `FilterDropdownMenu` should show filter categories first, then drill into options using a forward-arrow pattern.
+14. Filter changes must use table-level loading only.
+15. Reuse this pattern for Users, Indicators, Logs, Threat Events, and future admin data pages.
+
+---
+
+## 17.11 Admin Table Header Button Rule
+
+Table-header action buttons must use one shared visual standard.
+
+Rules:
+
+1. Table-header action buttons must use the same visual standard as the Users `Create User` button.
+2. Buttons in `DataTable` header or action areas must have consistent height, radius, padding, background color, text color, icon spacing, and hover or focus states.
+3. Use the shared table-header button style or component when available.
+4. Button width should be consistent by default, but may expand if content needs more space.
+5. `FilterDropdownMenu` trigger buttons must visually align with other table-header action buttons.
+6. Do not invent new table-header button styles per page.
+7. Apply this rule to Users, Indicators, Logs, Threat Events, and future admin data pages.
 
 ---
 

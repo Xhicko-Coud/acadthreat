@@ -2,12 +2,12 @@ import {
   CheckCircle2,
   Filter,
   Plus,
-  ShieldX,
   Users,
 } from "lucide-react";
 
 import { AdminActionSheet } from "@/components/admin/AdminActionSheet";
-import { EmptyState } from "@/components/shared/EmptyState";
+import { FilterDropdownMenu } from "@/components/admin/FilterDropdownMenu";
+import { tableHeaderButtonClassName } from "@/components/admin/tableHeaderButtonStyles";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -36,7 +36,6 @@ export function UsersView({
   filteredUsers,
   getUserActions,
   handleSheetOpenChange,
-  hasAccess,
   inactiveUsers,
   isCreating,
   isCreateMode,
@@ -78,6 +77,13 @@ export function UsersView({
   totalUsers,
   updateUser,
 }: UsersViewProps) {
+  const statusFilterLabel =
+    statusFilter === "all"
+      ? "All statuses"
+      : statusFilter === "active"
+        ? "Active"
+        : "Inactive";
+
   const metrics = [
     {
       description: "Trusted internal user accounts in the workspace.",
@@ -116,15 +122,6 @@ export function UsersView({
         </div>
       </section>
 
-      {!hasAccess ? (
-        <EmptyState
-          description="Your account does not currently have permission to manage trusted internal workspace users."
-          icon={ShieldX}
-          title="User management restricted"
-        />
-      ) : null}
-
-      {hasAccess ? (
       <section className="grid gap-4 md:grid-cols-3">
         {metrics.map((metric) => (
           <article
@@ -148,31 +145,51 @@ export function UsersView({
           </article>
         ))}
       </section>
-      ) : null}
 
-      {hasAccess ? (
       <UsersTable
         actions={
           <>
-            <Select
-              onValueChange={(value) =>
-                setStatusFilter(value as "active" | "inactive" | "all")
-              }
-              value={statusFilter}
-            >
-              <SelectTrigger className="h-10 w-full rounded-lg border-primary/20 bg-primary/[0.04] text-primary shadow-sm hover:border-primary/35 hover:bg-primary/[0.08] focus-visible:border-primary sm:w-52">
-                <Filter className="size-4 text-primary/70" />
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border border-primary/10 shadow-xl">
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="active">Active only</SelectItem>
-                <SelectItem value="inactive">Inactive only</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="hidden lg:block">
+              <Select
+                onValueChange={(value) =>
+                  setStatusFilter(value as "active" | "inactive" | "all")
+                }
+                value={statusFilter}
+              >
+                <SelectTrigger className="h-10 w-full rounded-lg border-primary/20 bg-primary/[0.04] text-primary shadow-sm hover:border-primary/35 hover:bg-primary/[0.08] focus-visible:border-primary sm:w-52">
+                  <Filter className="size-4 text-primary/70" />
+                  <SelectValue placeholder="Filter status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border border-primary/10 shadow-xl">
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="active">Active only</SelectItem>
+                  <SelectItem value="inactive">Inactive only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="lg:hidden">
+              <FilterDropdownMenu
+                groups={[
+                  {
+                    key: "status",
+                    label: "Status",
+                    onSelect: (value) =>
+                      setStatusFilter(value as "active" | "inactive" | "all"),
+                    options: [
+                      { label: "All statuses", value: "all" },
+                      { label: "Active only", value: "active" },
+                      { label: "Inactive only", value: "inactive" },
+                    ],
+                    value: statusFilter,
+                    valueLabel: statusFilterLabel,
+                  },
+                ]}
+              />
+            </div>
             <Button
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className={tableHeaderButtonClassName}
               onClick={() => setIsOpenCreateSheetConfirmOpen(true)}
+              size="lg"
               type="button"
             >
               <Plus className="size-4" />
@@ -186,7 +203,6 @@ export function UsersView({
         isLoading={isTableLoading}
         title="User Directory"
       />
-      ) : null}
 
       <AdminActionSheet
         cancelText={isViewMode ? "Close" : "Cancel"}
@@ -203,7 +219,7 @@ export function UsersView({
         onCancel={() => handleSheetOpenChange(false)}
         onConfirm={requestSaveSheet}
         onOpenChange={handleSheetOpenChange}
-        open={hasAccess && isSheetOpen}
+        open={isSheetOpen}
         showConfirmButton={!isViewMode}
         title={
           isCreateMode ? "Create user" : isViewMode ? "View user" : "Edit user"
@@ -219,7 +235,6 @@ export function UsersView({
         />
       </AdminActionSheet>
 
-      {hasAccess ? (
       <UsersDialogs
         allowOpenEditSheet={allowOpenEditSheet}
         allowOpenCreateSheet={allowOpenCreateSheet}
@@ -252,7 +267,6 @@ export function UsersView({
         sheetUser={sheetUser}
         updateUser={updateUser}
       />
-      ) : null}
     </div>
   );
 }

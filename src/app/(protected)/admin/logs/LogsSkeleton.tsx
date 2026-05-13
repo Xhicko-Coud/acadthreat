@@ -13,7 +13,12 @@ export function LogsSkeleton() {
 
       <section className="overflow-hidden rounded-lg border border-primary/10 bg-white shadow-sm">
         <div className="px-4 py-4 sm:px-6">
-          <Skeleton className="h-12 w-full" />
+          <div className="flex flex-col gap-3 lg:flex-row">
+            <Skeleton className="h-10 w-full lg:w-44" />
+            <Skeleton className="h-10 w-full lg:w-52" />
+            <Skeleton className="h-10 w-full lg:w-44" />
+            <Skeleton className="h-10 w-full lg:w-44" />
+          </div>
         </div>
       </section>
 
