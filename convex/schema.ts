@@ -47,6 +47,25 @@ const normalizedEventSeverityValidator = v.union(
   v.literal("critical"),
 );
 
+const threatEventMatchedFieldValidator = v.union(
+  v.literal("srcIp"),
+  v.literal("destIp"),
+  v.literal("actor"),
+  v.literal("requestPath"),
+  v.literal("message"),
+  v.literal("eventType"),
+  v.literal("action"),
+  v.literal("outcome"),
+  v.literal("other"),
+);
+
+const threatEventStatusValidator = v.union(
+  v.literal("open"),
+  v.literal("investigating"),
+  v.literal("resolved"),
+  v.literal("false_positive"),
+);
+
 export default defineSchema({
   healthChecks: defineTable({
     message: v.string(),
@@ -155,4 +174,34 @@ export default defineSchema({
     .index("by_eventTimestamp", ["eventTimestamp"])
     .index("by_sourceType_and_eventTimestamp", ["sourceType", "eventTimestamp"])
     .index("by_srcIp", ["srcIp"]),
+  threatEvents: defineTable({
+    normalizedEventId: v.id("normalizedEvents"),
+    rawLogId: v.optional(v.id("rawLogs")),
+    matchedIndicatorId: v.id("threatIndicators"),
+    deduplicationKey: v.string(),
+    eventType: v.string(),
+    sourceType: logSourceTypeValidator,
+    indicatorType: threatIndicatorTypeValidator,
+    indicatorValue: v.string(),
+    matchedField: threatEventMatchedFieldValidator,
+    severity: threatIndicatorSeverityValidator,
+    confidence: v.number(),
+    status: threatEventStatusValidator,
+    correlationReason: v.string(),
+    evidenceSummary: v.string(),
+    isSimulated: v.boolean(),
+    detectedAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_deduplicationKey", ["deduplicationKey"])
+    .index("by_normalizedEventId", ["normalizedEventId"])
+    .index("by_matchedIndicatorId", ["matchedIndicatorId"])
+    .index("by_status", ["status"])
+    .index("by_severity", ["severity"])
+    .index("by_sourceType", ["sourceType"])
+    .index("by_detectedAt", ["detectedAt"])
+    .index("by_status_and_detectedAt", ["status", "detectedAt"])
+    .index("by_severity_and_detectedAt", ["severity", "detectedAt"])
+    .index("by_sourceType_and_detectedAt", ["sourceType", "detectedAt"]),
 });

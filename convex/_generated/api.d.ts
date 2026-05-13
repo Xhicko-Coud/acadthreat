@@ -28,6 +28,7 @@ import type * as mutations_userManagement from "../mutations/userManagement.js";
 import type * as queries_logs from "../queries/logs.js";
 import type * as queries_threatIndicators from "../queries/threatIndicators.js";
 import type * as queries_userManagementApi from "../queries/userManagementApi.js";
+import type * as threatEvents_helpers from "../threatEvents/helpers.js";
 import type * as threatIndicators_helpers from "../threatIndicators/helpers.js";
 import type * as threatIndicators_seedDemoIndicatorsInternal from "../threatIndicators/seedDemoIndicatorsInternal.js";
 import type * as users_createTrustedUser from "../users/createTrustedUser.js";
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   "queries/logs": typeof queries_logs;
   "queries/threatIndicators": typeof queries_threatIndicators;
   "queries/userManagementApi": typeof queries_userManagementApi;
+  "threatEvents/helpers": typeof threatEvents_helpers;
   "threatIndicators/helpers": typeof threatIndicators_helpers;
   "threatIndicators/seedDemoIndicatorsInternal": typeof threatIndicators_seedDemoIndicatorsInternal;
   "users/createTrustedUser": typeof users_createTrustedUser;
