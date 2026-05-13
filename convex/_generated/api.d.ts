@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as actions_runCorrelation from "../actions/runCorrelation.js";
 import type * as actions_seedDemoIndicators from "../actions/seedDemoIndicators.js";
 import type * as actions_seedDemoLogs from "../actions/seedDemoLogs.js";
 import type * as actions_userManagementApi from "../actions/userManagementApi.js";
@@ -26,10 +27,12 @@ import type * as logs_seedDemoLogsData from "../logs/seedDemoLogsData.js";
 import type * as mutations_threatIndicators from "../mutations/threatIndicators.js";
 import type * as mutations_userManagement from "../mutations/userManagement.js";
 import type * as queries_logs from "../queries/logs.js";
+import type * as queries_threatEvents from "../queries/threatEvents.js";
 import type * as queries_threatIndicators from "../queries/threatIndicators.js";
 import type * as queries_userManagementApi from "../queries/userManagementApi.js";
 import type * as threatEvents_correlation from "../threatEvents/correlation.js";
 import type * as threatEvents_helpers from "../threatEvents/helpers.js";
+import type * as threatEvents_recentEvents from "../threatEvents/recentEvents.js";
 import type * as threatIndicators_helpers from "../threatIndicators/helpers.js";
 import type * as threatIndicators_seedDemoIndicatorsInternal from "../threatIndicators/seedDemoIndicatorsInternal.js";
 import type * as users_createTrustedUser from "../users/createTrustedUser.js";
@@ -42,6 +45,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "actions/runCorrelation": typeof actions_runCorrelation;
   "actions/seedDemoIndicators": typeof actions_seedDemoIndicators;
   "actions/seedDemoLogs": typeof actions_seedDemoLogs;
   "actions/userManagementApi": typeof actions_userManagementApi;
@@ -60,10 +64,12 @@ declare const fullApi: ApiFromModules<{
   "mutations/threatIndicators": typeof mutations_threatIndicators;
   "mutations/userManagement": typeof mutations_userManagement;
   "queries/logs": typeof queries_logs;
+  "queries/threatEvents": typeof queries_threatEvents;
   "queries/threatIndicators": typeof queries_threatIndicators;
   "queries/userManagementApi": typeof queries_userManagementApi;
   "threatEvents/correlation": typeof threatEvents_correlation;
   "threatEvents/helpers": typeof threatEvents_helpers;
+  "threatEvents/recentEvents": typeof threatEvents_recentEvents;
   "threatIndicators/helpers": typeof threatIndicators_helpers;
   "threatIndicators/seedDemoIndicatorsInternal": typeof threatIndicators_seedDemoIndicatorsInternal;
   "users/createTrustedUser": typeof users_createTrustedUser;
