@@ -1,6 +1,6 @@
 "use client";
 
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Eye, Pencil, RotateCcw, ShieldX, UserCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -124,7 +124,6 @@ type PendingCreateSummary = {
 type PendingEditSummary = {
   email: string;
   name: string;
-  passwordChanged: boolean;
   role: "analyst" | "viewer";
 };
 
@@ -190,12 +189,17 @@ function getStatusActionMessage(status: string) {
     },
     unchanged: {
       title: "No changes detected",
-      description: "Make a role or password change before saving.",
+      description: "Make a role change before saving.",
       variant: "info",
     },
     unsupported_role_creation: {
       title: "Role not allowed",
       description: "Administrator access cannot be assigned from this screen.",
+      variant: "error",
+    },
+    password_change_separate: {
+      title: "Password not updated",
+      description: "Password changes are separate from role management.",
       variant: "error",
     },
   };
@@ -233,8 +237,8 @@ export function useUsersLogic() {
   const reactivateUserAction = useAction(
     api.actions.userManagementApi.reactivateUser,
   );
-  const updateUserRoleAction = useAction(
-    api.actions.userManagementApi.updateUserRole,
+  const updateUserRoleMutation = useMutation(
+    api.users.operations.updateUserRole,
   );
   const router = useRouter();
   const { showNotification } = useNotifications();
@@ -559,6 +563,11 @@ export function useUsersLogic() {
     const hasRoleChange = values.role !== sheetUser.role;
     const hasPasswordChange = Boolean(normalizedPassword);
 
+    if (hasPasswordChange) {
+      showNotification(getStatusActionMessage("password_change_separate"));
+      return;
+    }
+
     if (!hasRoleChange && !hasPasswordChange) {
       showNotification(getStatusActionMessage("unchanged"));
       return;
@@ -567,7 +576,6 @@ export function useUsersLogic() {
     setPendingEditSummary({
       email: sheetUser.email,
       name: sheetUser.name ?? "Unnamed user",
-      passwordChanged: hasPasswordChange,
       role: values.role,
     });
     setIsEditSaveConfirmOpen(true);
@@ -651,13 +659,12 @@ export function useUsersLogic() {
     setIsUpdating(true);
 
     try {
-      const result = await updateUserRoleAction({
-        password: editUserForm.getValues().password.trim() || undefined,
+      const result = await updateUserRoleMutation({
         role: editUserForm.getValues().role,
         targetUserId: sheetUser.userId,
       });
 
-      if (result.status === "success" || result.status === "updated") {
+      if (result.status === "updated") {
         showNotification(getStatusActionMessage("success_update"));
         resetSheetState();
         router.refresh();
@@ -682,7 +689,7 @@ export function useUsersLogic() {
     setIsRoleUpdating(true);
 
     try {
-      const result = await updateUserRoleAction({
+      const result = await updateUserRoleMutation({
         role: selectedRole,
         targetUserId: pendingRoleUser.userId,
       });

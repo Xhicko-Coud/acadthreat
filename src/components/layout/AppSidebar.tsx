@@ -5,6 +5,7 @@ import { CopyrightIcon, ShieldCheckIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { adminNavigation } from "@/config/navigation";
+import type { UserProfileRole, UserProfileStatus } from "@convex/auth/authorization";
 import { siteConfig } from "@/config/site";
 import {
   Sidebar,
@@ -21,8 +22,20 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 
-export function AppSidebar() {
+export function AppSidebar({
+  profile,
+}: {
+  profile: {
+    email: string;
+    name: string | null;
+    role: UserProfileRole;
+    status: UserProfileStatus;
+  };
+}) {
   const pathname = usePathname();
+  const navigationItems = adminNavigation.filter(
+    (item) => !item.allowedRoles || item.allowedRoles.includes(profile.role),
+  );
 
   return (
     <Sidebar
@@ -64,7 +77,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-2">
-              {adminNavigation.map((item) => {
+              {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = item.matchPaths.some(
                   (path) => pathname === path || pathname.startsWith(`${path}/`),

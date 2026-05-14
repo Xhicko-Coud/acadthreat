@@ -6,7 +6,6 @@ import type { GenericActionCtx } from "convex/server";
 import { internal } from "@convex/_generated/api";
 import type { DataModel } from "@convex/_generated/dataModel";
 import { action } from "@convex/_generated/server";
-import { createAuth } from "@convex/auth";
 import { authComponent } from "@convex/auth";
 import {
   USER_PROFILE_ROLES,
@@ -14,13 +13,6 @@ import {
 } from "@convex/auth/authorization";
 
 type UserManagementActionCtx = GenericActionCtx<DataModel>;
-type PasswordManagementAuth = {
-  api?: {
-    setUserPassword?: (args: {
-      body: { newPassword: string; userId: string };
-    }) => Promise<unknown>;
-  };
-};
 
 export const deactivateUser = action({
   args: {
@@ -39,132 +31,6 @@ export const reactivateUser = action({
     return await updateManagedUserStatus(ctx, args.targetUserId, USER_PROFILE_STATUSES.active);
   },
 });
-
-export const updateUserRole = action({
-  args: {
-    password: v.optional(v.string()),
-    role: v.union(
-      v.literal("admin"),
-      v.literal("analyst"),
-      v.literal("viewer"),
-    ),
-    targetUserId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const actor = await getCurrentAuthUser(ctx);
-
-    if (!actor) {
-      return { status: "unauthenticated" } as const;
-    }
-
-    const access = await ctx.runQuery(
-      internal.mutations.userManagement.getUserManagementAccess,
-      { userId: actor._id },
-    );
-
-    if (access.status !== "allowed") {
-      return { status: "forbidden" } as const;
-    }
-
-    const normalizedTargetUserId = args.targetUserId.trim();
-
-    if (!normalizedTargetUserId) {
-      return { status: "invalid_input" } as const;
-    }
-
-    if (normalizedTargetUserId === actor._id) {
-      return { status: "self_action_blocked" } as const;
-    }
-
-    const normalizedPassword = args.password?.trim() ?? "";
-    const targetProfile = await ctx.runQuery(
-      internal.mutations.userManagement.getManagedUserProfile,
-      { userId: normalizedTargetUserId },
-    );
-
-    if (!targetProfile) {
-      return { status: "not_found" } as const;
-    }
-
-    if (
-      targetProfile.userId === actor._id &&
-      targetProfile.role === USER_PROFILE_ROLES.admin &&
-      args.role !== USER_PROFILE_ROLES.admin
-    ) {
-      return { status: "last_admin_blocked" } as const;
-    }
-
-    if (
-      targetProfile.role === USER_PROFILE_ROLES.admin &&
-      args.role !== USER_PROFILE_ROLES.admin
-    ) {
-      const activeAdminCount = await ctx.runQuery(
-        internal.mutations.userManagement.countActiveAdminProfiles,
-        {},
-      );
-
-      if (activeAdminCount <= 1) {
-        return { status: "last_admin_blocked" } as const;
-      }
-    }
-
-    if (normalizedPassword) {
-      const auth = createAuth(ctx) as unknown as PasswordManagementAuth;
-
-      if (!auth.api?.setUserPassword) {
-        return { status: "failed" } as const;
-      }
-
-      try {
-        await auth.api.setUserPassword({
-          body: {
-            newPassword: normalizedPassword,
-            userId: normalizedTargetUserId,
-          },
-        });
-      } catch {
-        return { status: "failed" } as const;
-      }
-    }
-
-    if (targetProfile.role === args.role) {
-      return normalizedPassword
-        ? ({ status: "success" } as const)
-        : ({ status: "unchanged" } as const);
-    }
-
-    const result = await ctx.runMutation(
-      internal.mutations.userManagement.setUserRole,
-      {
-        role: args.role,
-        userId: normalizedTargetUserId,
-      },
-    );
-
-    if (result.status === "updated") {
-      return {
-        role: result.role,
-        status: "updated",
-        userId: result.userId,
-      } as const;
-    }
-
-    if (result.status === "unchanged") {
-      return {
-        role: result.role,
-        status: "unchanged",
-        userId: result.userId,
-      } as const;
-    }
-
-    if (result.status === "not_found") {
-      return { status: "not_found" } as const;
-    }
-
-    return { status: "failed" } as const;
-  },
-});
-
 
 async function updateManagedUserStatus(
   ctx: UserManagementActionCtx,

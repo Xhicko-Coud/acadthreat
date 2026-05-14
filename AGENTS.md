@@ -467,6 +467,10 @@ Rules:
 5. Role-change UI must require confirmation before applying changes.
 6. Role-change responses must be sanitized before reaching the UI.
 7. Password and auth credential changes are separate from role management.
+8. Users management page is admin-only unless explicitly approved otherwise.
+9. Analysts/viewers must not access user management or run role updates.
+10. Role-change mutations must have explicit return types to avoid Convex circular inference errors.
+11. Do not expose auth/internal errors.
 
 ---
 
@@ -553,16 +557,18 @@ Rules:
 
 1. Do not create new files under `convex/actions` by default.
 2. Convex actions can live in any folder.
-3. Use neutral folders such as `convex/maintenance`, `convex/jobs`, or a domain folder for normal non-Node actions.
-4. Use `"use node"` only when a regular action truly needs Node APIs or unsupported Node packages.
-5. Files with `"use node"` must export only `action` or `internalAction` functions.
-6. Do not export `query`, `mutation`, `internalQuery`, `internalMutation`, or `httpAction` from `"use node"` files.
-7. HTTP actions must not live under `convex/actions`.
-8. HTTP actions must not use `"use node"`.
-9. HTTP actions should live in `convex/http` or another neutral folder.
-10. Internal mutations should live in domain folders and be called through `ctx.runMutation`.
-11. Maintenance runners should call internal mutations instead of doing broad database writes directly.
-12. When writing future prompts, never suggest `convex/actions` for new runners unless Node runtime is explicitly required.
+3. Do not add normal frontend-safe app operations under `convex/actions`.
+4. Use domain folders such as `convex/users`, `convex/threatFeeds`, `convex/logs`, or `convex/threatEvents` for frontend-safe app operations.
+5. Use neutral folders such as `convex/maintenance`, `convex/jobs`, or a domain folder for normal non-Node actions.
+6. Use `"use node"` only when a regular action truly needs Node APIs or unsupported Node packages.
+7. Files with `"use node"` must export only `action` or `internalAction` functions.
+8. Do not export `query`, `mutation`, `internalQuery`, `internalMutation`, or `httpAction` from `"use node"` files.
+9. HTTP actions must not live under `convex/actions`.
+10. HTTP actions must not use `"use node"`.
+11. HTTP actions should live in `convex/http` or another neutral folder.
+12. Internal mutations should live in domain folders and be called through `ctx.runMutation`.
+13. Maintenance runners should call internal mutations instead of doing broad database writes directly.
+14. When writing future prompts, never suggest `convex/actions` for new runners unless Node runtime is explicitly required.
 
 ---
 

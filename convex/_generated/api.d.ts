@@ -51,6 +51,7 @@ import type * as threatIndicators_helpers from "../threatIndicators/helpers.js";
 import type * as threatIndicators_seedDemoIndicatorsInternal from "../threatIndicators/seedDemoIndicatorsInternal.js";
 import type * as users_createTrustedUser from "../users/createTrustedUser.js";
 import type * as users_createTrustedUserInternal from "../users/createTrustedUserInternal.js";
+import type * as users_operations from "../users/operations.js";
 
 import type {
   ApiFromModules,
@@ -102,6 +103,7 @@ declare const fullApi: ApiFromModules<{
   "threatIndicators/seedDemoIndicatorsInternal": typeof threatIndicators_seedDemoIndicatorsInternal;
   "users/createTrustedUser": typeof users_createTrustedUser;
   "users/createTrustedUserInternal": typeof users_createTrustedUserInternal;
+  "users/operations": typeof users_operations;
 }>;
 
 /**

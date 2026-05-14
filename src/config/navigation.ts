@@ -8,12 +8,15 @@ import {
   UsersIcon,
 } from "lucide-react";
 
+import type { UserProfileRole } from "@convex/auth/authorization";
+
 export type NavigationItem = {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   description: string;
   matchPaths: string[];
+  allowedRoles?: UserProfileRole[];
   disabled?: boolean;
   badge?: string;
 };
@@ -32,6 +35,7 @@ export const adminNavigation: NavigationItem[] = [
     label: "Users",
     description: "Trusted workspace access",
     matchPaths: ["/admin/users"],
+    allowedRoles: ["admin"],
   },
   {
     href: "/admin/threat-events",

@@ -59,7 +59,6 @@ type UsersDialogsProps = {
   pendingEditSummary: {
     email: string;
     name: string;
-    passwordChanged: boolean;
     role: "analyst" | "viewer";
   } | null;
   pendingDeactivateUser: UserRecord | null;
@@ -168,7 +167,7 @@ export function UsersDialogs({
         confirmText="Save changes"
         description={
           pendingEditSummary
-            ? `Save updates for ${pendingEditSummary.name} (${pendingEditSummary.email})? Role: ${formatRoleLabel(pendingEditSummary.role)}. Password changed: ${pendingEditSummary.passwordChanged ? "Yes" : "No"}.`
+            ? `Save updates for ${pendingEditSummary.name} (${pendingEditSummary.email})? Role: ${formatRoleLabel(pendingEditSummary.role)}.`
             : ""
         }
         icon={<Pencil className="size-7 text-primary" />}

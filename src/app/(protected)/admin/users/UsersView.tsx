@@ -219,7 +219,7 @@ export function UsersView({
             ? "Add a trusted analyst or viewer to the AcadThreat workspace."
             : isViewMode
               ? "Review this user's safe workspace details."
-              : "Update this user's role assignment and optional password."
+              : "Update this user's role assignment."
         }
         isLoading={isCreateMode ? isCreating : isUpdating}
         loadingText={isCreateMode ? "Creating user..." : "Saving changes..."}

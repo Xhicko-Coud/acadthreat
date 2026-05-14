@@ -62,8 +62,6 @@ export function UsersForm({
     : "";
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showEditPassword, setShowEditPassword] = useState(false);
-  const [showEditConfirmPassword, setShowEditConfirmPassword] = useState(false);
 
   if (isCreateMode) {
     const {
@@ -238,7 +236,6 @@ export function UsersForm({
   const {
     control,
     formState: { errors },
-    register,
   } = editForm;
 
   return (
@@ -313,105 +310,28 @@ export function UsersForm({
         </>
       </div>
 
-      {isEditMode || isViewMode ? (
+      {isViewMode ? (
         <>
           <div className="grid gap-1.5">
             <Label className="text-sm font-medium text-primary" htmlFor="edit-user-password">
-              {isViewMode ? "Password" : "New Password"}
+              Password
             </Label>
-            {isViewMode ? (
-              <div className="relative">
-                <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/55" />
-                <Input
-                  className="px-10"
-                  disabled
-                  id="edit-user-password"
-                  placeholder="Password is hidden for security"
-                  readOnly
-                  type="password"
-                  value=""
-                />
-              </div>
-            ) : (
-              <div className="relative">
-                <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/55" />
-                <Input
-                  aria-invalid={Boolean(errors.password)}
-                  className="px-10"
-                  defaultValue=""
-                  id="edit-user-password"
-                  placeholder="Leave blank to keep the current password"
-                  type={showEditPassword ? "text" : "password"}
-                  {...register("password")}
-                />
-                <button
-                  aria-label={showEditPassword ? "Hide password" : "Show password"}
-                  className="absolute right-3 top-1/2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center text-primary/60 transition hover:text-primary"
-                  onClick={() => setShowEditPassword((current) => !current)}
-                  type="button"
-                >
-                  {showEditPassword ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
-                </button>
-              </div>
-            )}
-            {isViewMode ? (
-              <p className="text-sm text-primary/70">
-                Password is hidden for security.
-              </p>
-            ) : errors.password ? (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
-            ) : null}
-          </div>
-
-          {!isViewMode ? (
-            <div className="grid gap-1.5">
-              <Label
-                className="text-sm font-medium text-primary"
-                htmlFor="edit-user-confirm-password"
-              >
-                Confirm New Password
-              </Label>
-              <div className="relative">
-                <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/55" />
-                <Input
-                  aria-invalid={Boolean(errors.confirmPassword)}
-                  className="px-10"
-                  defaultValue=""
-                  id="edit-user-confirm-password"
-                  placeholder="Confirm the new password"
-                  type={showEditConfirmPassword ? "text" : "password"}
-                  {...register("confirmPassword")}
-                />
-                <button
-                  aria-label={
-                    showEditConfirmPassword
-                      ? "Hide confirm password"
-                      : "Show confirm password"
-                  }
-                  className="absolute right-3 top-1/2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center text-primary/60 transition hover:text-primary"
-                  onClick={() =>
-                    setShowEditConfirmPassword((current) => !current)
-                  }
-                  type="button"
-                >
-                  {showEditConfirmPassword ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
-                </button>
-              </div>
-              {errors.confirmPassword ? (
-                <p className="text-sm text-destructive">
-                  {errors.confirmPassword.message}
-                </p>
-              ) : null}
+            <div className="relative">
+              <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/55" />
+              <Input
+                className="px-10"
+                disabled
+                id="edit-user-password"
+                placeholder="Password is hidden for security"
+                readOnly
+                type="password"
+                value=""
+              />
             </div>
-          ) : null}
+            <p className="text-sm text-primary/70">
+              Password is hidden for security.
+            </p>
+          </div>
         </>
       ) : null}
 
@@ -441,8 +361,8 @@ export function UsersForm({
 
       {isEditMode ? (
         <p className="rounded-md border border-primary/10 bg-primary/5 px-3 py-2 text-xs text-primary/80">
-          Update the user's assigned workspace role and optionally set a new
-          password. Leave the password fields blank to keep the current password.
+          Update the user's assigned workspace role. Password changes are
+          handled separately from role management.
         </p>
       ) : isViewMode ? (
         <p className="rounded-md border border-primary/10 bg-primary/5 px-3 py-2 text-xs text-primary/80">
