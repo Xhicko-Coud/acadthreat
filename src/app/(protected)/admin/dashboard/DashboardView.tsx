@@ -13,10 +13,15 @@ export function DashboardView({
   metrics,
   overview,
   recentHighPriorityThreats,
+  setThreatActivityRange,
+  setTrendProjectionRange,
+  threatActivityRange,
   threatActivityTrend,
+  isThreatActivityLoading,
   isTrendPredictionLoading,
   trendPrediction,
   trendPredictionStatus,
+  trendProjectionRange,
 }: DashboardViewProps) {
   return (
     <div className="grid gap-4" data-dashboard-ready={overview ? "true" : "false"}>
@@ -56,14 +61,21 @@ export function DashboardView({
       </section>
 
       <section className="grid gap-4">
-        <ThreatActivityTrendChart data={threatActivityTrend} />
+        <ThreatActivityTrendChart
+          data={threatActivityTrend}
+          isLoading={isThreatActivityLoading}
+          onRangeChange={setThreatActivityRange}
+          range={threatActivityRange}
+        />
       </section>
 
       <DashboardCharts charts={charts} />
 
       <ThreatTrendPredictionSection
         isLoading={isTrendPredictionLoading}
+        onRangeChange={setTrendProjectionRange}
         prediction={trendPrediction}
+        range={trendProjectionRange}
         status={trendPredictionStatus}
       />
 

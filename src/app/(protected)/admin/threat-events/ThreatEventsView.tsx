@@ -1,6 +1,8 @@
 import { AdminActionSheet } from "@/components/admin/AdminActionSheet";
 import { FilterDropdownMenu } from "@/components/admin/FilterDropdownMenu";
 
+import { ThreatEventsAnalysisActions } from "./ThreatEventsAnalysisActions";
+import { ThreatEventsAnalysisDialog } from "./ThreatEventsAnalysisDialog";
 import { ThreatEventDetails } from "./ThreatEventDetails";
 import { ThreatEventsDialogs } from "./ThreatEventsDialogs";
 import type { useThreatEventsLogic } from "./ThreatEventsLogic";
@@ -18,6 +20,8 @@ type ThreatEventsViewProps = ReturnType<typeof useThreatEventsLogic>;
 
 export function ThreatEventsView({
   cancelStatusUpdate,
+  closeAnalysisConfirmation,
+  confirmAnalysisOperation,
   confirmStatusUpdate,
   detailedThreatEvent,
   getThreatEventActions,
@@ -25,8 +29,11 @@ export function ThreatEventsView({
   indicatorTypeFilter,
   isDetailsLoading,
   isDetailsOpen,
+  isRunningAnalysis,
   isTableLoading,
   isUpdatingStatus,
+  openAnalysisConfirmation,
+  pendingAnalysisOperation,
   pendingStatusUpdate,
   priorityFilter,
   scoringStatusFilter,
@@ -60,138 +67,147 @@ export function ThreatEventsView({
 
       <ThreatEventsTable
         actions={
-          <FilterDropdownMenu
-            groups={[
-              {
-                key: "status",
-                label: "Status",
-                onSelect: (value) =>
-                  setStatusFilter(
-                    value as
-                      | "all"
-                      | "open"
-                      | "investigating"
-                      | "resolved"
-                      | "false_positive",
-                  ),
-                options: [
-                  { label: "All statuses", value: "all" },
-                  { label: "Open", value: "open" },
-                  { label: "Investigating", value: "investigating" },
-                  { label: "Resolved", value: "resolved" },
-                  { label: "False positive", value: "false_positive" },
-                ],
-                value: statusFilter,
-                valueLabel:
-                  statusFilter === "all"
-                    ? "All statuses"
-                    : formatThreatEventStatusLabel(statusFilter),
-              },
-              {
-                key: "severity",
-                label: "Severity",
-                onSelect: (value) =>
-                  setSeverityFilter(
-                    value as "all" | "low" | "medium" | "high" | "critical",
-                  ),
-                options: [
-                  { label: "All severities", value: "all" },
-                  { label: "Low", value: "low" },
-                  { label: "Medium", value: "medium" },
-                  { label: "High", value: "high" },
-                  { label: "Critical", value: "critical" },
-                ],
-                value: severityFilter,
-                valueLabel:
-                  severityFilter === "all"
-                    ? "All severities"
-                    : formatThreatEventSeverityLabel(severityFilter),
-              },
-              {
-                key: "priority",
-                label: "Priority",
-                onSelect: (value) =>
-                  setPriorityFilter(
-                    value as "all" | "low" | "medium" | "high" | "critical",
-                  ),
-                options: [
-                  { label: "All priorities", value: "all" },
-                  { label: "Low", value: "low" },
-                  { label: "Medium", value: "medium" },
-                  { label: "High", value: "high" },
-                  { label: "Critical", value: "critical" },
-                ],
-                value: priorityFilter,
-                valueLabel:
-                  priorityFilter === "all"
-                    ? "All priorities"
-                    : formatThreatEventPriorityLabel(priorityFilter),
-              },
-              {
-                key: "scoringStatus",
-                label: "Scoring Status",
-                onSelect: (value) =>
-                  setScoringStatusFilter(value as "all" | "unscored" | "scored"),
-                options: [
-                  { label: "All scoring statuses", value: "all" },
-                  { label: "Unscored", value: "unscored" },
-                  { label: "Scored", value: "scored" },
-                ],
-                value: scoringStatusFilter,
-                valueLabel:
-                  scoringStatusFilter === "all"
-                    ? "All scoring statuses"
-                    : formatThreatEventScoringStatusLabel(scoringStatusFilter),
-              },
-              {
-                key: "sourceType",
-                label: "Source",
-                onSelect: (value) =>
-                  setSourceTypeFilter(
-                    value as "all" | "authentication" | "firewall",
-                  ),
-                options: [
-                  { label: "All sources", value: "all" },
-                  { label: "Authentication", value: "authentication" },
-                  { label: "Firewall", value: "firewall" },
-                ],
-                value: sourceTypeFilter,
-                valueLabel:
-                  sourceTypeFilter === "all"
-                    ? "All sources"
-                    : formatThreatEventSourceLabel(sourceTypeFilter),
-              },
-              {
-                key: "indicatorType",
-                label: "Indicator Type",
-                onSelect: (value) =>
-                  setIndicatorTypeFilter(
-                    value as
-                      | "all"
-                      | "ip"
-                      | "domain"
-                      | "url"
-                      | "hash"
-                      | "email"
-                      | "keyword",
-                  ),
-                options: [
-                  { label: "All indicator types", value: "all" },
-                  { label: "IP", value: "ip" },
-                  { label: "Domain", value: "domain" },
-                  { label: "URL", value: "url" },
-                  { label: "Hash", value: "hash" },
-                  { label: "Email", value: "email" },
-                  { label: "Keyword", value: "keyword" },
-                ],
-                value: indicatorTypeFilter,
-                valueLabel:
-                  indicatorTypeFilter === "all"
-                    ? "All indicator types"
-                    : formatThreatEventIndicatorTypeLabel(indicatorTypeFilter),
-              },
-            ]}
-          />
+          <>
+            <ThreatEventsAnalysisActions
+              disabled={isRunningAnalysis}
+              onSelectOperation={openAnalysisConfirmation}
+            />
+            <FilterDropdownMenu
+              disabled={isRunningAnalysis}
+              groups={[
+                {
+                  key: "status",
+                  label: "Status",
+                  onSelect: (value) =>
+                    setStatusFilter(
+                      value as
+                        | "all"
+                        | "open"
+                        | "investigating"
+                        | "resolved"
+                        | "false_positive",
+                    ),
+                  options: [
+                    { label: "All statuses", value: "all" },
+                    { label: "Open", value: "open" },
+                    { label: "Investigating", value: "investigating" },
+                    { label: "Resolved", value: "resolved" },
+                    { label: "False positive", value: "false_positive" },
+                  ],
+                  value: statusFilter,
+                  valueLabel:
+                    statusFilter === "all"
+                      ? "All statuses"
+                      : formatThreatEventStatusLabel(statusFilter),
+                },
+                {
+                  key: "severity",
+                  label: "Severity",
+                  onSelect: (value) =>
+                    setSeverityFilter(
+                      value as "all" | "low" | "medium" | "high" | "critical",
+                    ),
+                  options: [
+                    { label: "All severities", value: "all" },
+                    { label: "Low", value: "low" },
+                    { label: "Medium", value: "medium" },
+                    { label: "High", value: "high" },
+                    { label: "Critical", value: "critical" },
+                  ],
+                  value: severityFilter,
+                  valueLabel:
+                    severityFilter === "all"
+                      ? "All severities"
+                      : formatThreatEventSeverityLabel(severityFilter),
+                },
+                {
+                  key: "priority",
+                  label: "Priority",
+                  onSelect: (value) =>
+                    setPriorityFilter(
+                      value as "all" | "low" | "medium" | "high" | "critical",
+                    ),
+                  options: [
+                    { label: "All priorities", value: "all" },
+                    { label: "Low", value: "low" },
+                    { label: "Medium", value: "medium" },
+                    { label: "High", value: "high" },
+                    { label: "Critical", value: "critical" },
+                  ],
+                  value: priorityFilter,
+                  valueLabel:
+                    priorityFilter === "all"
+                      ? "All priorities"
+                      : formatThreatEventPriorityLabel(priorityFilter),
+                },
+                {
+                  key: "scoringStatus",
+                  label: "Scoring Status",
+                  onSelect: (value) =>
+                    setScoringStatusFilter(
+                      value as "all" | "unscored" | "scored",
+                    ),
+                  options: [
+                    { label: "All scoring statuses", value: "all" },
+                    { label: "Unscored", value: "unscored" },
+                    { label: "Scored", value: "scored" },
+                  ],
+                  value: scoringStatusFilter,
+                  valueLabel:
+                    scoringStatusFilter === "all"
+                      ? "All scoring statuses"
+                      : formatThreatEventScoringStatusLabel(scoringStatusFilter),
+                },
+                {
+                  key: "sourceType",
+                  label: "Source",
+                  onSelect: (value) =>
+                    setSourceTypeFilter(
+                      value as "all" | "authentication" | "firewall",
+                    ),
+                  options: [
+                    { label: "All sources", value: "all" },
+                    { label: "Authentication", value: "authentication" },
+                    { label: "Firewall", value: "firewall" },
+                  ],
+                  value: sourceTypeFilter,
+                  valueLabel:
+                    sourceTypeFilter === "all"
+                      ? "All sources"
+                      : formatThreatEventSourceLabel(sourceTypeFilter),
+                },
+                {
+                  key: "indicatorType",
+                  label: "Indicator Type",
+                  onSelect: (value) =>
+                    setIndicatorTypeFilter(
+                      value as
+                        | "all"
+                        | "ip"
+                        | "domain"
+                        | "url"
+                        | "hash"
+                        | "email"
+                        | "keyword",
+                    ),
+                  options: [
+                    { label: "All indicator types", value: "all" },
+                    { label: "IP", value: "ip" },
+                    { label: "Domain", value: "domain" },
+                    { label: "URL", value: "url" },
+                    { label: "Hash", value: "hash" },
+                    { label: "Email", value: "email" },
+                    { label: "Keyword", value: "keyword" },
+                  ],
+                  value: indicatorTypeFilter,
+                  valueLabel:
+                    indicatorTypeFilter === "all"
+                      ? "All indicator types"
+                      : formatThreatEventIndicatorTypeLabel(indicatorTypeFilter),
+                },
+              ]}
+            />
+          </>
         }
         data={threatEvents}
         description="Generated correlation results available for review."
@@ -221,6 +237,13 @@ export function ThreatEventsView({
         confirmStatusUpdate={confirmStatusUpdate}
         isUpdatingStatus={isUpdatingStatus}
         pendingStatusUpdate={pendingStatusUpdate}
+      />
+
+      <ThreatEventsAnalysisDialog
+        isLoading={isRunningAnalysis}
+        onCancel={closeAnalysisConfirmation}
+        onConfirm={confirmAnalysisOperation}
+        operation={pendingAnalysisOperation}
       />
     </div>
   );

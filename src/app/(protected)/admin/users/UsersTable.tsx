@@ -7,6 +7,7 @@ import {
   DataTableRowActions,
   type RowAction,
 } from "@/components/admin/DataTableRowActions";
+import { TableCellText } from "@/components/admin/TableCellText";
 
 import { formatRoleLabel, type UserRecord } from "./UsersLogic";
 
@@ -37,16 +38,18 @@ export function UsersTable({
       accessorKey: "name",
       header: "Name",
       cell: ({ row }) => (
-        <span className="font-medium text-foreground">
+        <TableCellText className="font-medium text-foreground">
           {row.original.name || "Unknown"}
-        </span>
+        </TableCellText>
       ),
     },
     {
       accessorKey: "email",
       header: "Email",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.email}</span>
+        <TableCellText className="text-muted-foreground">
+          {row.original.email}
+        </TableCellText>
       ),
     },
     {

@@ -7,6 +7,7 @@ import {
   DataTableRowActions,
   type RowAction,
 } from "@/components/admin/DataTableRowActions";
+import { TableCellText } from "@/components/admin/TableCellText";
 import { Badge } from "@/components/ui/badge";
 
 import {
@@ -49,9 +50,9 @@ export function ThreatEventsTable({
       accessorKey: "eventType",
       header: "Event Type",
       cell: ({ row }) => (
-        <span className="font-medium text-foreground">
+        <TableCellText className="font-medium text-foreground">
           {formatThreatEventTypeLabel(row.original.eventType)}
-        </span>
+        </TableCellText>
       ),
     },
     {
@@ -67,10 +68,9 @@ export function ThreatEventsTable({
       accessorKey: "indicatorValue",
       header: "Indicator",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {formatThreatEventIndicatorTypeLabel(row.original.indicatorType)}:{" "}
-          {row.original.indicatorValue}
-        </span>
+        <TableCellText className="text-muted-foreground">
+          {`${formatThreatEventIndicatorTypeLabel(row.original.indicatorType)}: ${row.original.indicatorValue}`}
+        </TableCellText>
       ),
     },
     {

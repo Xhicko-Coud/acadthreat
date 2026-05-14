@@ -9,7 +9,11 @@ const SOURCE_TYPE = "firewall";
 const SOURCE_NAME = "urlhaus-correlation-proof";
 const CLIENT_ID = "urlhaus-proof-seed";
 const NEXT_STEPS_MESSAGE =
-  "Seeded one simulated firewall log containing a URLHaus URL indicator. Run correlation and severity scoring next.";
+  "Seeded one simulated firewall log containing a URLHaus URL indicator. Confirm it in /admin/logs, then run correlation and severity scoring.";
+const DUPLICATE_MESSAGE =
+  "A matching proof log may already exist. Check /admin/logs, then run correlation and severity scoring.";
+const NORMALIZATION_FAILED_MESSAGE =
+  "Proof log was accepted but did not create a normalized event. Check firewall normalizer shape.";
 
 type SelectedUrlhausIndicator = {
   id: Id<"threatIndicators">;
@@ -22,13 +26,32 @@ type SeedUrlhausCorrelationProofResult =
       created: true;
       indicatorValue: string;
       sourceType: typeof SOURCE_TYPE;
+      ingestionStatus: "ingested";
+      rawLogId?: string;
+      normalizedEventId?: string;
+      normalizedEventCreated: true;
       message: typeof NEXT_STEPS_MESSAGE;
     }
   | {
       status: "duplicate";
       created: false;
       indicatorValue: string;
-      message: "A matching proof log may already exist. Run correlation and severity scoring next.";
+      sourceType: typeof SOURCE_TYPE;
+      ingestionStatus: "duplicate";
+      rawLogId?: string;
+      normalizedEventId?: string;
+      normalizedEventCreated: boolean;
+      message: typeof DUPLICATE_MESSAGE;
+    }
+  | {
+      status: "normalization_failed";
+      created: false;
+      indicatorValue: string;
+      sourceType: typeof SOURCE_TYPE;
+      ingestionStatus: "normalization_failed";
+      rawLogId?: string;
+      normalizedEventCreated: false;
+      message: typeof NORMALIZATION_FAILED_MESSAGE;
     }
   | {
       status: "invalid_input";
@@ -124,22 +147,75 @@ export const seedUrlhausCorrelationProof = action({
       );
 
       if (result.status === "ingested") {
+        const normalizedEvent = await ctx.runQuery(
+          internal.maintenance.seedUrlhausCorrelationProof
+            .findProofNormalizedEventInternal,
+          {
+            indicatorValue: selectedIndicator.indicator.value,
+            normalizedEventId: result.normalizedEventId as Id<"normalizedEvents">,
+            rawLogId: result.rawLogId as Id<"rawLogs">,
+          },
+        );
+
+        if (!normalizedEvent) {
+          return {
+            created: false,
+            indicatorValue: selectedIndicator.indicator.value,
+            ingestionStatus: "normalization_failed",
+            message: NORMALIZATION_FAILED_MESSAGE,
+            normalizedEventCreated: false,
+            rawLogId: result.rawLogId,
+            sourceType: SOURCE_TYPE,
+            status: "normalization_failed",
+          };
+        }
+
         return {
           created: true,
           indicatorValue: selectedIndicator.indicator.value,
+          ingestionStatus: "ingested",
           message: NEXT_STEPS_MESSAGE,
+          normalizedEventCreated: true,
+          normalizedEventId: normalizedEvent._id,
+          rawLogId: result.rawLogId,
           sourceType: SOURCE_TYPE,
           status: "created",
         };
       }
 
       if (result.status === "duplicate") {
+        const normalizedEvent = await ctx.runQuery(
+          internal.maintenance.seedUrlhausCorrelationProof
+            .findProofNormalizedEventInternal,
+          {
+            indicatorValue: selectedIndicator.indicator.value,
+            rawLogId: result.rawLogId as Id<"rawLogs">,
+          },
+        );
+
         return {
           created: false,
           indicatorValue: selectedIndicator.indicator.value,
-          message:
-            "A matching proof log may already exist. Run correlation and severity scoring next.",
+          ingestionStatus: "duplicate",
+          message: DUPLICATE_MESSAGE,
+          normalizedEventCreated: normalizedEvent !== null,
+          ...(normalizedEvent ? { normalizedEventId: normalizedEvent._id } : {}),
+          rawLogId: result.rawLogId,
+          sourceType: SOURCE_TYPE,
           status: "duplicate",
+        };
+      }
+
+      if (result.status === "normalization_failed") {
+        return {
+          created: false,
+          indicatorValue: selectedIndicator.indicator.value,
+          ingestionStatus: "normalization_failed",
+          message: NORMALIZATION_FAILED_MESSAGE,
+          normalizedEventCreated: false,
+          rawLogId: result.rawLogId,
+          sourceType: SOURCE_TYPE,
+          status: "normalization_failed",
         };
       }
 
@@ -185,19 +261,79 @@ export const selectUrlhausCorrelationProofIndicatorInternal = internalQuery({
   },
 });
 
+export const findProofNormalizedEventInternal = internalQuery({
+  args: {
+    indicatorValue: v.string(),
+    normalizedEventId: v.optional(v.id("normalizedEvents")),
+    rawLogId: v.optional(v.id("rawLogs")),
+  },
+  handler: async (ctx, args) => {
+    if (args.normalizedEventId) {
+      const event = await ctx.db.get(args.normalizedEventId);
+
+      if (isMatchingProofNormalizedEvent(event, args.indicatorValue)) {
+        return event;
+      }
+    }
+
+    if (args.rawLogId) {
+      const event = await ctx.db
+        .query("normalizedEvents")
+        .withIndex("by_rawLogId", (lookup) => lookup.eq("rawLogId", args.rawLogId!))
+        .unique();
+
+      if (isMatchingProofNormalizedEvent(event, args.indicatorValue)) {
+        return event;
+      }
+    }
+
+    const recentEvents = await ctx.db
+      .query("normalizedEvents")
+      .withIndex("by_sourceType_and_eventTimestamp", (lookup) =>
+        lookup.eq("sourceType", SOURCE_TYPE),
+      )
+      .order("desc")
+      .take(25);
+
+    return (
+      recentEvents.find((event) =>
+        isMatchingProofNormalizedEvent(event, args.indicatorValue),
+      ) ?? null
+    );
+  },
+});
+
 function buildFirewallProofPayload(indicatorValue: string, timestamp: number) {
   return JSON.stringify({
     action: "block",
     destIp: "198.51.100.10",
+    destPort: 443,
     eventType: "connection_blocked",
     isSimulated: true,
-    message: `Blocked attempted access to known malicious URL: ${indicatorValue}`,
+    message: `URLHaus proof event: blocked attempted access to known malicious URL ${indicatorValue} at ${timestamp}`,
     outcome: "blocked",
-    protocol: "https",
+    protocol: "TCP",
     requestPath: indicatorValue,
     srcIp: "203.0.113.45",
+    srcPort: 57152,
     timestamp,
   });
+}
+
+function isMatchingProofNormalizedEvent(
+  event: Doc<"normalizedEvents"> | null,
+  indicatorValue: string,
+): event is Doc<"normalizedEvents"> {
+  if (!event || event.sourceType !== SOURCE_TYPE || !event.isSimulated) {
+    return false;
+  }
+
+  const normalizedIndicatorValue = indicatorValue.trim();
+
+  return (
+    event.requestPath === normalizedIndicatorValue ||
+    event.message?.includes(normalizedIndicatorValue) === true
+  );
 }
 
 function isActiveUrlhausUrlIndicator(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -18,6 +18,13 @@ export type LogOutcomeFilter =
   | "failure"
   | "locked"
   | "success";
+export type ProofLogProvider =
+  | "urlhaus"
+  | "abuseipdb"
+  | "otx"
+  | "phishtank"
+  | "misp";
+export type ProofLogCount = 1 | 5 | 10 | 25 | 50;
 export type NormalizedEventRecord = {
   id: string;
   sourceType: LogSourceType;
@@ -50,6 +57,14 @@ const LOG_EVENT_TYPE_OPTIONS = [
   { label: "Connection denied", value: "connection_denied" },
   { label: "Suspicious port scan", value: "suspicious_port_scan" },
 ] as const;
+
+const PROOF_LOG_PROVIDER_LABELS: Record<ProofLogProvider, string> = {
+  abuseipdb: "AbuseIPDB",
+  misp: "MISP",
+  otx: "AlienVault OTX",
+  phishtank: "PhishTank",
+  urlhaus: "URLHaus",
+};
 
 export function formatLogSourceTypeLabel(sourceType: LogSourceType) {
   const labels: Record<LogSourceType, string> = {
@@ -106,6 +121,10 @@ export function formatLogOutcomeLabel(outcome: string) {
   return labels[outcome] ?? formatFallbackLabel(outcome);
 }
 
+export function formatProofLogProviderLabel(provider: ProofLogProvider) {
+  return PROOF_LOG_PROVIDER_LABELS[provider];
+}
+
 export function formatNormalizedEventTime(timestamp: number) {
   return new Date(timestamp).toLocaleString("en-US", {
     day: "numeric",
@@ -118,6 +137,9 @@ export function formatNormalizedEventTime(timestamp: number) {
 
 export function useLogsLogic() {
   const { showNotification } = useNotifications();
+  const seedProviderProofLogOperation = useAction(
+    api.logs.operations.seedProviderProofLogOperation,
+  );
   const [sourceTypeFilter, setSourceTypeFilter] = useState<LogSourceType | "all">(
     "all",
   );
@@ -135,6 +157,12 @@ export function useLogsLogic() {
     NormalizedEventRecord[]
   >([]);
   const [lastAlertKey, setLastAlertKey] = useState<string | null>(null);
+  const [selectedProofProvider, setSelectedProofProvider] =
+    useState<ProofLogProvider>("urlhaus");
+  const [selectedProofLogCount, setSelectedProofLogCount] =
+    useState<ProofLogCount>(1);
+  const [isProofSeedDialogOpen, setIsProofSeedDialogOpen] = useState(false);
+  const [isSeedingProofLog, setIsSeedingProofLog] = useState(false);
 
   const queryResult = useQuery(api.queries.logs.listNormalizedEvents, {
     eventType: eventTypeFilter === "all" ? undefined : eventTypeFilter,
@@ -221,6 +249,8 @@ export function useLogsLogic() {
   const isTableLoading = hasLoadedInitialData && queryResult === undefined;
   const hasAccess = contextResult?.status === "success";
   const capabilities = hasAccess ? contextResult.capabilities : null;
+  const role = hasAccess ? contextResult.role : null;
+  const canSeedProofLogs = role === "admin";
   const eventTypeOptions = useMemo(() => [...LOG_EVENT_TYPE_OPTIONS], []);
 
   function openEventDetails(event: NormalizedEventRecord) {
@@ -242,6 +272,58 @@ export function useLogsLogic() {
     setIsDetailsOpen(true);
   }
 
+  function openProofSeedDialog() {
+    setIsProofSeedDialogOpen(true);
+  }
+
+  function closeProofSeedDialog() {
+    if (isSeedingProofLog) {
+      return;
+    }
+
+    setIsProofSeedDialogOpen(false);
+  }
+
+  function selectProofProvider(provider: ProofLogProvider) {
+    setSelectedProofProvider(provider);
+  }
+
+  function selectProofLogCount(count: ProofLogCount) {
+    setSelectedProofLogCount(count);
+  }
+
+  async function confirmSeedProofLog() {
+    const providerLabel = formatProofLogProviderLabel(selectedProofProvider);
+
+    if (selectedProofProvider !== "urlhaus") {
+      showNotification({
+        description: `${providerLabel} is not enabled in this MVP.`,
+        title: "Provider not enabled",
+        variant: "info",
+      });
+      return;
+    }
+
+    setIsSeedingProofLog(true);
+
+    try {
+      const result = await seedProviderProofLogOperation({
+        count: selectedProofLogCount,
+        provider: selectedProofProvider,
+      });
+
+      showNotification(getProofLogSeedNotification(result));
+
+      if (result.status === "created" || result.status === "partial") {
+        setIsProofSeedDialogOpen(false);
+      }
+    } catch {
+      showNotification(getProofLogSeedNotification({ status: "failed" }));
+    } finally {
+      setIsSeedingProofLog(false);
+    }
+  }
+
   function getEventActions(event: NormalizedEventRecord): RowAction[] {
     return [
       {
@@ -254,6 +336,9 @@ export function useLogsLogic() {
 
   return {
     capabilities,
+    canSeedProofLogs,
+    closeProofSeedDialog,
+    confirmSeedProofLog,
     eventTypeFilter,
     eventTypeOptions,
     handleDetailsOpenChange,
@@ -261,16 +346,93 @@ export function useLogsLogic() {
     hasAccess,
     isDetailsOpen,
     isInitialLoading,
+    isProofSeedDialogOpen,
+    isSeedingProofLog,
     isTableLoading,
     normalizedEvents,
+    openProofSeedDialog,
     outcomeFilter,
     selectedEvent,
+    selectedProofLogCount,
+    selectedProofProvider,
+    selectedProofProviderLabel: formatProofLogProviderLabel(selectedProofProvider),
+    selectProofLogCount,
+    selectProofProvider,
     setEventTypeFilter,
     setOutcomeFilter,
     setSeverityFilter,
     setSourceTypeFilter,
     severityFilter,
     sourceTypeFilter,
+  };
+}
+
+function getProofLogSeedNotification(result: {
+  createdCount?: number;
+  normalizedEventCount?: number;
+  providerLabel?: string;
+  status:
+    | "created"
+    | "failed"
+    | "forbidden"
+    | "invalid_input"
+    | "not_found"
+    | "partial"
+    | "provider_not_enabled"
+    | "unauthenticated";
+}) {
+  if (result.status === "created") {
+    return {
+      description: `Seeded ${result.createdCount ?? 0} proof logs from ${result.providerLabel ?? "selected provider"}. ${result.normalizedEventCount ?? 0} normalized events created. Run correlation from Threat Events.`,
+      title: "Proof logs seeded",
+      variant: "success" as const,
+    };
+  }
+
+  if (result.status === "partial") {
+    return {
+      description: `Seeded ${result.createdCount ?? 0} proof logs from ${result.providerLabel ?? "selected provider"}. ${result.normalizedEventCount ?? 0} normalized events created. Fewer indicators were available than requested.`,
+      title: "Proof logs partially seeded",
+      variant: "warning" as const,
+    };
+  }
+
+  if (result.status === "provider_not_enabled") {
+    return {
+      description: `${result.providerLabel ?? "This provider"} is not enabled in this MVP.`,
+      title: "Provider not enabled",
+      variant: "info" as const,
+    };
+  }
+
+  if (result.status === "not_found") {
+    return {
+      description: `No active indicator found for ${result.providerLabel ?? "the selected provider"}. Sync indicators for this provider first.`,
+      title: "No matching indicator",
+      variant: "warning" as const,
+    };
+  }
+
+  if (result.status === "forbidden") {
+    return {
+      description: "Your account cannot seed proof logs.",
+      title: "Access denied",
+      variant: "error" as const,
+    };
+  }
+
+  if (result.status === "unauthenticated") {
+    return {
+      description: "Please sign in to seed proof logs.",
+      title: "Sign in required",
+      variant: "error" as const,
+    };
+  }
+
+  return {
+    description: "Proof log seed failed. Please try again later.",
+    title: "Seed failed",
+    variant: "error" as const,
   };
 }
 

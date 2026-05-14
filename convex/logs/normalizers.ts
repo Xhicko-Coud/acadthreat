@@ -196,6 +196,7 @@ export function normalizeAuthenticationLogPayload(
  *   "protocol": "TCP",
  *   "action": "allow" | "block" | "deny",
  *   "outcome": "allowed" | "blocked" | "denied",
+ *   "requestPath": "/optional/network/request/path",
  *   "message": "Blocked incoming connection from 10.0.0.5 to port 443"
  * }
  * ```
@@ -228,6 +229,7 @@ export function normalizeFirewallLogPayload(
   const protocol = normalizeOptionalText(extractString(parsed, "protocol"));
   const action = normalizeOptionalText(extractString(parsed, "action"));
   const outcome = normalizeOptionalText(extractString(parsed, "outcome"));
+  const requestPath = normalizeOptionalText(extractString(parsed, "requestPath"));
   const rawMessage = normalizeOptionalText(extractString(parsed, "message"));
   const message = rawMessage
     ? truncateText(rawMessage, MAX_NORMALIZED_MESSAGE_LENGTH)
@@ -247,6 +249,7 @@ export function normalizeFirewallLogPayload(
       ...(action ? { action } : {}),
       ...(outcome ? { outcome } : {}),
       ...(severity ? { severity } : {}),
+      ...(requestPath ? { requestPath } : {}),
       ...(message ? { message } : {}),
     },
     status: "success",

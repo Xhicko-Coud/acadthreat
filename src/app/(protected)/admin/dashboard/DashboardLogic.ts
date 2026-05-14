@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -21,6 +22,12 @@ export type DashboardMetric = {
 export type DashboardTrendPoint = {
   count: number;
   date: string;
+};
+export type DashboardActivityRange = 1 | 3 | 7 | 14 | 28;
+
+export type DashboardRangeOption = {
+  label: string;
+  value: DashboardActivityRange;
 };
 
 export type DashboardDistributionPoint = {
@@ -86,17 +93,33 @@ export type DashboardPriorityTrendPoint = {
 };
 
 export function useDashboardLogic() {
-  const overviewResult = useQuery(api.queries.dashboard.getDashboardOverview);
+  const [threatActivityRange, setThreatActivityRange] =
+    useState<DashboardActivityRange>(7);
+  const [trendProjectionRange, setTrendProjectionRange] =
+    useState<DashboardActivityRange>(14);
+  const overviewResult = useQuery(api.queries.dashboard.getDashboardOverview, {
+    threatActivityRangeDays: threatActivityRange,
+  });
   const trendPredictionResult = useQuery(
     api.queries.trendPrediction.getThreatTrendPrediction,
+    { historicalWindowDays: trendProjectionRange },
   );
+  const [cachedOverviewResult, setCachedOverviewResult] =
+    useState<typeof overviewResult>(undefined);
 
-  const isInitialLoading = overviewResult === undefined;
+  useEffect(() => {
+    if (overviewResult !== undefined) {
+      setCachedOverviewResult(overviewResult);
+    }
+  }, [overviewResult]);
+
+  const activeOverviewResult = overviewResult ?? cachedOverviewResult;
+  const isInitialLoading = activeOverviewResult === undefined;
   const isRestricted =
-    overviewResult?.status === "forbidden" ||
-    overviewResult?.status === "unauthenticated";
+    activeOverviewResult?.status === "forbidden" ||
+    activeOverviewResult?.status === "unauthenticated";
   const overview =
-    overviewResult?.status === "success" ? overviewResult : null;
+    activeOverviewResult?.status === "success" ? activeOverviewResult : null;
   const metrics = formatDashboardMetrics(overview?.summary ?? null);
   const charts = formatDashboardCharts(overview);
   const heroMeta = formatDashboardHeroMeta(overview?.summary ?? null);
@@ -111,14 +134,34 @@ export function useDashboardLogic() {
     heroMeta,
     isInitialLoading,
     isRestricted,
+    isThreatActivityLoading: overviewResult === undefined && overview !== null,
     isTrendPredictionLoading: trendPredictionResult === undefined,
     metrics,
     overview,
     recentHighPriorityThreats,
+    setThreatActivityRange,
+    setTrendProjectionRange,
+    threatActivityRange,
     threatActivityTrend,
     trendPrediction,
+    trendProjectionRange,
     trendPredictionStatus,
   };
+}
+
+export const DASHBOARD_RANGE_OPTIONS: DashboardRangeOption[] = [
+  { label: "Last 24 hours", value: 1 },
+  { label: "Last 3 days", value: 3 },
+  { label: "Last 7 days", value: 7 },
+  { label: "Last 14 days", value: 14 },
+  { label: "Last 28 days", value: 28 },
+];
+
+export function formatDashboardRangeLabel(range: DashboardActivityRange) {
+  return (
+    DASHBOARD_RANGE_OPTIONS.find((option) => option.value === range)?.label ??
+    "Last 7 days"
+  );
 }
 
 function formatDashboardHeroMeta(

@@ -1,5 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import { query, type QueryCtx } from "@convex/_generated/server";
+import { v } from "convex/values";
 import {
   USER_PROFILE_ROLES,
   getCurrentAuthUser,
@@ -10,9 +11,11 @@ import {
   type ThreatEventPriority,
 } from "@convex/threatEvents/helpers";
 
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-const HISTORICAL_WINDOW_DAYS = 14;
-const COMPARISON_WINDOW_DAYS = 7;
+const HOUR_IN_MS = 60 * 60 * 1000;
+const DAY_IN_MS = 24 * HOUR_IN_MS;
+const DEFAULT_HISTORICAL_WINDOW_DAYS = 14;
+const MIN_HISTORICAL_WINDOW_DAYS = 1;
+const MAX_HISTORICAL_WINDOW_DAYS = 28;
 const PREDICTION_WINDOW_DAYS = 3;
 const MINIMUM_EVENTS_FOR_TREND = 7;
 const LOW_CONFIDENCE_EVENT_LIMIT = 14;
@@ -44,8 +47,10 @@ type TrendDirection =
 type TrendConfidence = "low" | "medium" | "high";
 
 export const getThreatTrendPrediction = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    historicalWindowDays: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     const access = await getTrendPredictionReadContext(ctx);
 
     if (access.status !== "success") {
@@ -55,11 +60,24 @@ export const getThreatTrendPrediction = query({
     try {
       const now = Date.now();
       const todayStart = getUtcDayStart(now);
+      const currentHourStart = getUtcHourStart(now);
+      const historicalWindowDays = normalizeHistoricalWindowDays(
+        args.historicalWindowDays,
+      );
+      const comparisonWindowDays = Math.max(
+        1,
+        Math.ceil(historicalWindowDays / 2),
+      );
       const historicalStart =
-        todayStart - (HISTORICAL_WINDOW_DAYS - 1) * DAY_IN_MS;
-      const historicalEnd = todayStart + DAY_IN_MS;
+        historicalWindowDays === 1
+          ? currentHourStart - 23 * HOUR_IN_MS
+          : todayStart - (historicalWindowDays - 1) * DAY_IN_MS;
+      const historicalEnd =
+        historicalWindowDays === 1
+          ? currentHourStart + HOUR_IN_MS
+          : todayStart + DAY_IN_MS;
       const currentStart =
-        todayStart - (COMPARISON_WINDOW_DAYS - 1) * DAY_IN_MS;
+        historicalEnd - comparisonWindowDays * DAY_IN_MS;
 
       const threatEvents = await loadHistoricalThreatEvents(ctx, {
         endAt: historicalEnd,
@@ -67,14 +85,16 @@ export const getThreatTrendPrediction = query({
       });
       const prediction = buildTrendPrediction({
         startAt: currentStart,
+        comparisonWindowDays,
         historicalEnd,
         historicalStart,
+        historicalWindowDays,
         threatEvents,
       });
 
       return {
         ...prediction,
-        historicalWindowDays: HISTORICAL_WINDOW_DAYS,
+        historicalWindowDays,
         predictionWindowDays: PREDICTION_WINDOW_DAYS,
         status: "success",
       } as const;
@@ -127,13 +147,17 @@ async function loadHistoricalThreatEvents(
 }
 
 function buildTrendPrediction({
+  comparisonWindowDays,
   historicalEnd,
   historicalStart,
+  historicalWindowDays,
   startAt,
   threatEvents,
 }: {
+  comparisonWindowDays: number;
   historicalEnd: number;
   historicalStart: number;
+  historicalWindowDays: number;
   startAt: number;
   threatEvents: Doc<"threatEvents">[];
 }) {
@@ -159,28 +183,48 @@ function buildTrendPrediction({
       trendDirection,
     }),
     historicalSeries: buildHistoricalSeries({
+      historicalWindowDays,
       startAt: historicalStart,
       threatEvents,
     }),
     priorityTrend: buildPriorityTrend({ currentEvents, previousEvents }),
     projectedSeries: buildProjectedSeries({
+      comparisonWindowDays,
       currentCount: currentEvents.length,
+      historicalWindowDays,
       startAt: historicalEnd,
       trendDirection,
     }),
-    summary: getTrendSummary(trendDirection),
+    summary: getTrendSummary(trendDirection, historicalWindowDays),
     trendDirection,
   };
 }
 
 function buildHistoricalSeries({
+  historicalWindowDays,
   startAt,
   threatEvents,
 }: {
+  historicalWindowDays: number;
   startAt: number;
   threatEvents: Doc<"threatEvents">[];
 }) {
-  return Array.from({ length: HISTORICAL_WINDOW_DAYS }, (_, index) => {
+  if (historicalWindowDays === 1) {
+    return Array.from({ length: 24 }, (_, index) => {
+      const hourStart = startAt + index * HOUR_IN_MS;
+      const hourEnd = hourStart + HOUR_IN_MS;
+
+      return {
+        count: threatEvents.filter(
+          (event) =>
+            event.detectedAt >= hourStart && event.detectedAt < hourEnd,
+        ).length,
+        date: formatUtcHourLabel(hourStart),
+      };
+    });
+  }
+
+  return Array.from({ length: historicalWindowDays }, (_, index) => {
     const dayStart = startAt + index * DAY_IN_MS;
     const dayEnd = dayStart + DAY_IN_MS;
 
@@ -262,11 +306,15 @@ function getTrendConfidence({
 }
 
 function buildProjectedSeries({
+  comparisonWindowDays,
   currentCount,
+  historicalWindowDays,
   startAt,
   trendDirection,
 }: {
+  comparisonWindowDays: number;
   currentCount: number;
+  historicalWindowDays: number;
   startAt: number;
   trendDirection: TrendDirection;
 }) {
@@ -274,8 +322,19 @@ function buildProjectedSeries({
     return [];
   }
 
-  const dailyAverage = currentCount / COMPARISON_WINDOW_DAYS;
   const adjustment = getProjectionAdjustment(trendDirection);
+
+  if (historicalWindowDays === 1) {
+    const hourlyAverage = currentCount / 24;
+
+    return Array.from({ length: 3 }, (_, index) => ({
+      count: Math.max(0, Math.round(hourlyAverage * adjustment)),
+      date: formatUtcHourLabel(startAt + index * HOUR_IN_MS),
+      projected: true as const,
+    }));
+  }
+
+  const dailyAverage = currentCount / comparisonWindowDays;
 
   return Array.from({ length: PREDICTION_WINDOW_DAYS }, (_, index) => ({
     count: Math.max(0, Math.round(dailyAverage * adjustment)),
@@ -331,20 +390,34 @@ function getThreatEventPriority(
   return event.priority ?? event.severity;
 }
 
-function getTrendSummary(trendDirection: TrendDirection) {
+function getTrendSummary(
+  trendDirection: TrendDirection,
+  historicalWindowDays: number,
+) {
   if (trendDirection === "insufficient_data") {
     return "There is not enough generated threat event data to estimate a reliable trend.";
   }
 
   if (trendDirection === "increasing") {
-    return "Threat activity is currently increasing based on generated threat events from the last 14 days.";
+    return `Threat activity is currently increasing based on generated threat events from the last ${historicalWindowDays === 1 ? "24 hours" : `${historicalWindowDays} days`}.`;
   }
 
   if (trendDirection === "decreasing") {
-    return "Threat activity is currently decreasing based on generated threat events from the last 14 days.";
+    return `Threat activity is currently decreasing based on generated threat events from the last ${historicalWindowDays === 1 ? "24 hours" : `${historicalWindowDays} days`}.`;
   }
 
   return "Threat activity appears stable based on recent generated threat events.";
+}
+
+function normalizeHistoricalWindowDays(windowDays: number | undefined) {
+  if (typeof windowDays !== "number" || !Number.isFinite(windowDays)) {
+    return DEFAULT_HISTORICAL_WINDOW_DAYS;
+  }
+
+  return Math.min(
+    MAX_HISTORICAL_WINDOW_DAYS,
+    Math.max(MIN_HISTORICAL_WINDOW_DAYS, Math.trunc(windowDays)),
+  );
 }
 
 function getUtcDayStart(timestamp: number) {
@@ -357,6 +430,21 @@ function getUtcDayStart(timestamp: number) {
   );
 }
 
+function getUtcHourStart(timestamp: number) {
+  const date = new Date(timestamp);
+
+  return Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    date.getUTCHours(),
+  );
+}
+
 function formatUtcDateLabel(timestamp: number) {
   return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+function formatUtcHourLabel(timestamp: number) {
+  return `${new Date(timestamp).toISOString().slice(11, 16)} UTC`;
 }

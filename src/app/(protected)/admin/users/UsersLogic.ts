@@ -1,7 +1,7 @@
 "use client";
 
 import { useAction, useQuery } from "convex/react";
-import { Eye, Pencil, RotateCcw, ShieldX } from "lucide-react";
+import { Eye, Pencil, RotateCcw, ShieldX, UserCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -13,12 +13,13 @@ import type { RowAction } from "@/components/admin/DataTableRowActions";
 import { useNotifications } from "@/hooks/use-notifications";
 
 export type UserStatus = "active" | "inactive";
+export type UserRole = "admin" | "analyst" | "viewer";
 export type UserRecord = {
   _id: string;
   createdAt: number;
   email: string;
   name: string | null;
-  role: "admin" | "analyst" | "viewer";
+  role: UserRole;
   status: UserStatus;
   userId: string;
 };
@@ -152,6 +153,11 @@ function getStatusActionMessage(status: string) {
       description: "You do not have permission to manage users.",
       variant: "error",
     },
+    last_admin_blocked: {
+      title: "Action blocked",
+      description: "At least one active admin must remain.",
+      variant: "error",
+    },
     not_found: {
       title: "User not found",
       description: "The selected user could not be found.",
@@ -252,6 +258,10 @@ export function useUsersLogic() {
     useState<UserRecord | null>(null);
   const [pendingReactivateUser, setPendingReactivateUser] =
     useState<UserRecord | null>(null);
+  const [pendingRoleUser, setPendingRoleUser] = useState<UserRecord | null>(
+    null,
+  );
+  const [selectedRole, setSelectedRole] = useState<UserRole>("viewer");
   const [pendingCreateSummary, setPendingCreateSummary] =
     useState<PendingCreateSummary | null>(null);
   const [pendingEditUser, setPendingEditUser] = useState<UserRecord | null>(null);
@@ -259,6 +269,7 @@ export function useUsersLogic() {
     useState<PendingEditSummary | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);
+  const [isRoleUpdating, setIsRoleUpdating] = useState(false);
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
   const [lastLoadedUsers, setLastLoadedUsers] = useState<UserRecord[]>([]);
   const [lastAlertKey, setLastAlertKey] = useState<string | null>(null);
@@ -376,7 +387,9 @@ export function useUsersLogic() {
   const isEditSheetDirty = editUserForm.formState.isDirty;
 
   function getUserActions(user: UserRecord): RowAction[] {
-    const canManageAccess = user.userId !== currentUserId && user.role !== "admin";
+    const isCurrentUser = user.userId === currentUserId;
+    const canManageAccess = !isCurrentUser && user.role !== "admin";
+    const canChangeRole = !isCurrentUser;
 
     return [
       {
@@ -389,6 +402,12 @@ export function useUsersLogic() {
         icon: Pencil,
         onClick: () => requestEditUser(user),
         disabled: !canManageAccess,
+      },
+      {
+        label: "Change role",
+        icon: UserCog,
+        onClick: () => requestChangeRole(user),
+        disabled: !canChangeRole,
       },
       {
         label:
@@ -426,6 +445,7 @@ export function useUsersLogic() {
     setIsEditSaveConfirmOpen(false);
     setIsDiscardSheetConfirmOpen(false);
     setPendingEditUser(null);
+    setPendingRoleUser(null);
     resetCreateForm();
     resetEditForm();
   }
@@ -472,6 +492,15 @@ export function useUsersLogic() {
 
     setPendingEditUser(user);
     setIsOpenEditSheetConfirmOpen(true);
+  }
+
+  function requestChangeRole(user: UserRecord) {
+    if (user.userId === currentUserId) {
+      return;
+    }
+
+    setPendingRoleUser(user);
+    setSelectedRole(user.role);
   }
 
   function allowOpenEditSheet() {
@@ -628,7 +657,7 @@ export function useUsersLogic() {
         targetUserId: sheetUser.userId,
       });
 
-      if (result.status === "success") {
+      if (result.status === "success" || result.status === "updated") {
         showNotification(getStatusActionMessage("success_update"));
         resetSheetState();
         router.refresh();
@@ -642,6 +671,83 @@ export function useUsersLogic() {
       showNotification(getStatusActionMessage("failed"));
     } finally {
       setIsUpdating(false);
+    }
+  }
+
+  async function changeUserRole() {
+    if (!pendingRoleUser) {
+      return;
+    }
+
+    setIsRoleUpdating(true);
+
+    try {
+      const result = await updateUserRoleAction({
+        role: selectedRole,
+        targetUserId: pendingRoleUser.userId,
+      });
+
+      if (result.status === "updated") {
+        showNotification({
+          title: "User role updated",
+          description: `User role updated to ${formatRoleLabel(result.role)}.`,
+          variant: "success",
+        });
+        setPendingRoleUser(null);
+        return;
+      }
+
+      if (result.status === "unchanged") {
+        showNotification({
+          title: "No changes detected",
+          description: "User already has this role.",
+          variant: "info",
+        });
+        setPendingRoleUser(null);
+        return;
+      }
+
+      if (result.status === "last_admin_blocked") {
+        showNotification({
+          title: "Role change blocked",
+          description: "At least one active admin must remain.",
+          variant: "error",
+        });
+        return;
+      }
+
+      if (result.status === "forbidden" || result.status === "unauthenticated") {
+        showNotification({
+          title: "Action not allowed",
+          description: "Your account cannot change user roles.",
+          variant: "error",
+        });
+        return;
+      }
+
+      if (result.status === "not_found") {
+        showNotification({
+          title: "User not found",
+          description: "User profile was not found.",
+          variant: "error",
+        });
+        setPendingRoleUser(null);
+        return;
+      }
+
+      showNotification({
+        title: "Role update failed",
+        description: "User role update failed. Please try again later.",
+        variant: "error",
+      });
+    } catch {
+      showNotification({
+        title: "Role update failed",
+        description: "User role update failed. Please try again later.",
+        variant: "error",
+      });
+    } finally {
+      setIsRoleUpdating(false);
     }
   }
 
@@ -706,6 +812,7 @@ export function useUsersLogic() {
   return {
     activeUsers,
     allowOpenCreateSheet,
+    changeUserRole,
     createUserForm,
     createUser,
     deactivateUser,
@@ -726,6 +833,7 @@ export function useUsersLogic() {
     isInitialLoading,
     isOpenCreateSheetConfirmOpen,
     isReactivating,
+    isRoleUpdating,
     isSaveCreateConfirmOpen,
     isSheetOpen,
     isTableLoading,
@@ -738,6 +846,7 @@ export function useUsersLogic() {
     pendingEditSummary,
     pendingDeactivateUser,
     pendingReactivateUser,
+    pendingRoleUser,
     query,
     reactivateUser,
     requestSaveSheet,
@@ -751,7 +860,10 @@ export function useUsersLogic() {
     setPendingEditUser,
     setPendingDeactivateUser,
     setPendingReactivateUser,
+    selectedRole,
+    setPendingRoleUser,
     setQuery,
+    setSelectedRole,
     setStatusFilter,
     sheetMode,
     sheetUser,

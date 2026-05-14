@@ -3,8 +3,6 @@ import { convex } from "@convex-dev/better-auth/plugins";
 import type { GenericCtx } from "@convex-dev/better-auth/utils";
 import type { BetterAuthOptions } from "better-auth/minimal";
 import { betterAuth } from "better-auth/minimal";
-import { admin } from "better-auth/plugins";
-import { adminAc, userAc } from "better-auth/plugins/admin/access";
 
 import { components } from "@convex/_generated/api";
 import type { DataModel } from "@convex/_generated/dataModel";
@@ -41,18 +39,7 @@ export function createAuthOptions(ctx: GenericCtx<DataModel>) {
       enabled: true,
       requireEmailVerification: false,
     },
-    plugins: [
-      admin({
-        adminRoles: ["admin"],
-        defaultRole: "viewer",
-        roles: {
-          admin: adminAc,
-          analyst: userAc,
-          viewer: userAc,
-        },
-      }),
-      convex({ authConfig }),
-    ],
+    plugins: [convex({ authConfig })],
   } satisfies BetterAuthOptions;
 }
 

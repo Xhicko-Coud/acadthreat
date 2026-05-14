@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { CheckCircle2, Eye, RotateCcw, Search, ShieldX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -120,6 +120,8 @@ export type PendingThreatEventStatusUpdate = {
   threatEvent: ThreatEventRecord;
 };
 
+export type ThreatEventAnalysisOperation = "correlation" | "severity_scoring";
+
 export function formatThreatEventTypeLabel(eventType: string) {
   const labels: Record<string, string> = {
     account_lockout: "Account lockout",
@@ -234,6 +236,12 @@ export function formatThreatEventTime(timestamp: number) {
 
 export function useThreatEventsLogic() {
   const { showNotification } = useNotifications();
+  const runCorrelationOperation = useAction(
+    api.threatEvents.operations.runCorrelationOperation,
+  );
+  const runSeverityScoringOperation = useAction(
+    api.threatEvents.operations.runSeverityScoringOperation,
+  );
   const updateThreatEventStatusMutation = useMutation(
     api.mutations.threatEvents.updateThreatEventStatus,
   );
@@ -266,6 +274,9 @@ export function useThreatEventsLogic() {
   const [pendingStatusUpdate, setPendingStatusUpdate] =
     useState<PendingThreatEventStatusUpdate | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [pendingAnalysisOperation, setPendingAnalysisOperation] =
+    useState<ThreatEventAnalysisOperation | null>(null);
+  const [isRunningAnalysis, setIsRunningAnalysis] = useState(false);
 
   const queryResult = useQuery(api.queries.threatEvents.listThreatEvents, {
     indicatorType:
@@ -442,6 +453,50 @@ export function useThreatEventsLogic() {
     }
   }
 
+  function openAnalysisConfirmation(operation: ThreatEventAnalysisOperation) {
+    setPendingAnalysisOperation(operation);
+  }
+
+  function closeAnalysisConfirmation() {
+    if (!isRunningAnalysis) {
+      setPendingAnalysisOperation(null);
+    }
+  }
+
+  async function confirmAnalysisOperation() {
+    if (!pendingAnalysisOperation) {
+      return;
+    }
+
+    setIsRunningAnalysis(true);
+
+    try {
+      if (pendingAnalysisOperation === "correlation") {
+        const result = await runCorrelationOperation({ limit: 100 });
+
+        showNotification(getCorrelationOperationNotification(result));
+
+        if (result.status === "completed") {
+          setPendingAnalysisOperation(null);
+        }
+
+        return;
+      }
+
+      const result = await runSeverityScoringOperation({ limit: 100 });
+
+      showNotification(getSeverityScoringOperationNotification(result));
+
+      if (result.status === "completed") {
+        setPendingAnalysisOperation(null);
+      }
+    } catch {
+      showNotification(getAnalysisOperationFailureNotification());
+    } finally {
+      setIsRunningAnalysis(false);
+    }
+  }
+
   function getThreatEventActions(event: ThreatEventRecord): RowAction[] {
     const actions: RowAction[] = [
       {
@@ -493,7 +548,9 @@ export function useThreatEventsLogic() {
   }
 
   return {
+    closeAnalysisConfirmation,
     cancelStatusUpdate,
+    confirmAnalysisOperation,
     canUpdateThreatEventStatus,
     confirmStatusUpdate,
     detailedThreatEvent,
@@ -504,8 +561,11 @@ export function useThreatEventsLogic() {
     isDetailsLoading,
     isDetailsOpen,
     isInitialLoading,
+    isRunningAnalysis,
     isTableLoading,
     isUpdatingStatus,
+    openAnalysisConfirmation,
+    pendingAnalysisOperation,
     pendingStatusUpdate,
     priorityFilter,
     scoringStatusFilter,
@@ -520,6 +580,71 @@ export function useThreatEventsLogic() {
     sourceTypeFilter,
     statusFilter,
     threatEvents,
+  };
+}
+
+function getCorrelationOperationNotification(result: {
+  counts: {
+    created: number;
+    processed: number;
+    skipped: number;
+  };
+  status: string;
+}) {
+  if (result.status === "completed") {
+    return {
+      description: `${result.counts.processed} processed, ${result.counts.created} created, ${result.counts.skipped} skipped.`,
+      title: "Correlation completed",
+      variant: "success" as const,
+    };
+  }
+
+  return getAnalysisOperationNotification(result.status);
+}
+
+function getSeverityScoringOperationNotification(result: {
+  counts: {
+    processed: number;
+    scored: number;
+  };
+  status: string;
+}) {
+  if (result.status === "completed") {
+    return {
+      description: `${result.counts.processed} processed, ${result.counts.scored} scored.`,
+      title: "Severity scoring completed",
+      variant: "success" as const,
+    };
+  }
+
+  return getAnalysisOperationNotification(result.status);
+}
+
+function getAnalysisOperationNotification(status: string) {
+  if (status === "forbidden") {
+    return {
+      description: "Your account cannot run this analysis operation.",
+      title: "Action not allowed",
+      variant: "error" as const,
+    };
+  }
+
+  if (status === "unauthenticated") {
+    return {
+      description: "Please sign in to run this operation.",
+      title: "Sign in required",
+      variant: "error" as const,
+    };
+  }
+
+  return getAnalysisOperationFailureNotification();
+}
+
+function getAnalysisOperationFailureNotification() {
+  return {
+    description: "Analysis operation failed. Please try again later.",
+    title: "Analysis failed",
+    variant: "error" as const,
   };
 }
 

@@ -15,11 +15,27 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import type { DashboardTrendPoint } from "./DashboardLogic";
+import {
+  DASHBOARD_RANGE_OPTIONS,
+  formatDashboardRangeLabel,
+  type DashboardActivityRange,
+  type DashboardTrendPoint,
+} from "./DashboardLogic";
 
 type ThreatActivityTrendChartProps = {
   data: DashboardTrendPoint[];
+  isLoading: boolean;
+  onRangeChange: (range: DashboardActivityRange) => void;
+  range: DashboardActivityRange;
 };
 
 const chartConfig = {
@@ -31,21 +47,46 @@ const chartConfig = {
 
 export function ThreatActivityTrendChart({
   data,
+  isLoading,
+  onRangeChange,
+  range,
 }: ThreatActivityTrendChartProps) {
   const hasData = data.some((point) => point.count > 0);
+  const rangeLabel = formatDashboardRangeLabel(range);
 
   return (
     <Card className="min-w-0 rounded-lg border border-primary/10 bg-white py-0 shadow-sm">
-      <CardHeader className="px-4 py-4 sm:px-5">
-        <CardTitle className="text-base font-semibold text-primary">
-          7-day threat activity
-        </CardTitle>
-        <CardDescription className="text-sm leading-6 text-primary/70">
-          Historical count of generated threat events over the last seven days.
-        </CardDescription>
+      <CardHeader className="gap-4 px-4 py-4 sm:px-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <CardTitle className="text-base font-semibold text-primary">
+            Threat activity
+          </CardTitle>
+          <CardDescription className="text-sm leading-6 text-primary/70">
+            Historical count of generated threat events for {rangeLabel.toLowerCase()}.
+          </CardDescription>
+        </div>
+        <Select
+          onValueChange={(value) =>
+            onRangeChange(Number(value) as DashboardActivityRange)
+          }
+          value={String(range)}
+        >
+          <SelectTrigger className="h-9 w-full md:w-44">
+            <SelectValue placeholder="Select range" />
+          </SelectTrigger>
+          <SelectContent>
+            {DASHBOARD_RANGE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={String(option.value)}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent className="px-4 pb-5 sm:px-5">
-        {data.length === 0 || !hasData ? (
+        {isLoading ? (
+          <Skeleton className="h-72 w-full rounded-lg" />
+        ) : data.length === 0 || !hasData ? (
           <ChartEmptyState />
         ) : (
           <ChartContainer

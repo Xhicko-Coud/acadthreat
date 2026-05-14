@@ -56,6 +56,20 @@ export const getManagedUserProfile = internalQuery({
   },
 });
 
+export const countActiveAdminProfiles = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const adminProfiles = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_role", (lookup) => lookup.eq("role", USER_PROFILE_ROLES.admin))
+      .collect();
+
+    return adminProfiles.filter(
+      (profile) => profile.status === USER_PROFILE_STATUSES.active,
+    ).length;
+  },
+});
+
 export const setUserStatus = internalMutation({
   args: {
     status: v.union(
@@ -111,16 +125,12 @@ export const setUserRole = internalMutation({
       return { status: "not_found" } as const;
     }
 
-    if (args.role === USER_PROFILE_ROLES.admin) {
-      return { status: "unsupported_role_creation" } as const;
-    }
-
     if (profile.role === args.role) {
-      return { status: "unchanged" } as const;
-    }
-
-    if (profile.role === USER_PROFILE_ROLES.admin) {
-      return { status: "unsupported_role_creation" } as const;
+      return {
+        role: profile.role,
+        status: "unchanged",
+        userId: profile.userId,
+      } as const;
     }
 
     await ctx.db.patch(profile._id, {
@@ -128,6 +138,10 @@ export const setUserRole = internalMutation({
       updatedAt: Date.now(),
     });
 
-    return { status: "success" } as const;
+    return {
+      role: args.role,
+      status: "updated",
+      userId: profile.userId,
+    } as const;
   },
 });

@@ -1,14 +1,42 @@
 "use client";
 
-import { CheckCircle2, Pencil, Plus, RotateCcw, ShieldX } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  Pencil,
+  Plus,
+  RotateCcw,
+  ShieldX,
+  UserCog,
+} from "lucide-react";
 
 import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-import { formatRoleLabel, type UserRecord } from "./UsersLogic";
+import { formatRoleLabel, type UserRecord, type UserRole } from "./UsersLogic";
 
 type UsersDialogsProps = {
   allowOpenEditSheet: () => void;
   allowOpenCreateSheet: () => void;
+  changeUserRole: () => void;
   createUser: () => void;
   deactivateUser: () => void;
   discardSheetChanges: () => void;
@@ -19,6 +47,7 @@ type UsersDialogsProps = {
   isEditSaveConfirmOpen: boolean;
   isOpenCreateSheetConfirmOpen: boolean;
   isReactivating: boolean;
+  isRoleUpdating: boolean;
   isSaveCreateConfirmOpen: boolean;
   isUpdating: boolean;
   pendingCreateSummary: {
@@ -35,7 +64,9 @@ type UsersDialogsProps = {
   } | null;
   pendingDeactivateUser: UserRecord | null;
   pendingReactivateUser: UserRecord | null;
+  pendingRoleUser: UserRecord | null;
   reactivateUser: () => void;
+  selectedRole: UserRole;
   setIsDiscardSheetConfirmOpen: (open: boolean) => void;
   setIsOpenEditSheetConfirmOpen: (open: boolean) => void;
   setIsEditSaveConfirmOpen: (open: boolean) => void;
@@ -44,6 +75,8 @@ type UsersDialogsProps = {
   setPendingEditUser: (user: UserRecord | null) => void;
   setPendingDeactivateUser: (user: UserRecord | null) => void;
   setPendingReactivateUser: (user: UserRecord | null) => void;
+  setPendingRoleUser: (user: UserRecord | null) => void;
+  setSelectedRole: (role: UserRole) => void;
   sheetUser: UserRecord | null;
   updateUser: () => void;
 };
@@ -51,6 +84,7 @@ type UsersDialogsProps = {
 export function UsersDialogs({
   allowOpenEditSheet,
   allowOpenCreateSheet,
+  changeUserRole,
   createUser,
   deactivateUser,
   discardSheetChanges,
@@ -61,6 +95,7 @@ export function UsersDialogs({
   isEditSaveConfirmOpen,
   isOpenCreateSheetConfirmOpen,
   isReactivating,
+  isRoleUpdating,
   isSaveCreateConfirmOpen,
   isUpdating,
   pendingCreateSummary,
@@ -68,7 +103,9 @@ export function UsersDialogs({
   pendingEditSummary,
   pendingDeactivateUser,
   pendingReactivateUser,
+  pendingRoleUser,
   reactivateUser,
+  selectedRole,
   setIsDiscardSheetConfirmOpen,
   setIsOpenEditSheetConfirmOpen,
   setIsEditSaveConfirmOpen,
@@ -77,6 +114,8 @@ export function UsersDialogs({
   setPendingEditUser,
   setPendingDeactivateUser,
   setPendingReactivateUser,
+  setPendingRoleUser,
+  setSelectedRole,
   sheetUser,
   updateUser,
 }: UsersDialogsProps) {
@@ -140,6 +179,95 @@ export function UsersDialogs({
         onOpenChange={setIsEditSaveConfirmOpen}
         title="Confirm User Update"
       />
+
+      <AlertDialog
+        open={Boolean(pendingRoleUser)}
+        onOpenChange={(open) => {
+          if (isRoleUpdating) {
+            return;
+          }
+
+          if (!open) {
+            setPendingRoleUser(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="!max-w-md border-primary/10 p-6 shadow-xl sm:!max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogMedia className="border border-primary/15 bg-primary/5">
+              <UserCog className="size-7 text-primary" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-foreground">
+              Change user role?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              This updates the user's AcadThreat application role. It does not
+              change their login credentials.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="grid gap-4">
+            <div className="rounded-lg border border-primary/10 bg-primary/5 p-3">
+              <p className="text-sm font-medium text-primary">
+                {pendingRoleUser?.name || "Unnamed user"}
+              </p>
+              <p className="mt-1 text-sm text-primary/70">
+                {pendingRoleUser?.email || "No email available"}
+              </p>
+              <p className="mt-2 text-xs font-medium uppercase tracking-normal text-primary/60">
+                Current role:{" "}
+                {pendingRoleUser
+                  ? formatRoleLabel(pendingRoleUser.role)
+                  : "Unknown"}
+              </p>
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label className="text-sm font-medium text-primary">
+                New role
+              </Label>
+              <Select
+                disabled={isRoleUpdating}
+                onValueChange={(value) => setSelectedRole(value as UserRole)}
+                value={selectedRole}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="analyst">Analyst</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <AlertDialogFooter className="grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] sm:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+            <AlertDialogCancel className="min-w-0" disabled={isRoleUpdating}>
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              className="min-w-0 gap-1.5 bg-primary px-3 text-center text-primary-foreground hover:bg-primary/90"
+              disabled={isRoleUpdating}
+              onClick={(event) => {
+                event.preventDefault();
+                changeUserRole();
+              }}
+              type="button"
+            >
+              {isRoleUpdating ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update role"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ConfirmationDialog
         confirmText="Discard"

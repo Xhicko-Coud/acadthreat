@@ -83,6 +83,7 @@ export function UsersForm({
             <Input
               aria-invalid={Boolean(errors.name)}
               className="pl-10"
+              defaultValue=""
               id="user-name"
               placeholder="Enter full name"
               {...register("name")}
@@ -102,6 +103,7 @@ export function UsersForm({
             <Input
               aria-invalid={Boolean(errors.email)}
               className="pl-10"
+              defaultValue=""
               id="user-email"
               placeholder="Enter email address"
               type="email"
@@ -122,6 +124,7 @@ export function UsersForm({
             <Input
               aria-invalid={Boolean(errors.password)}
               className="px-10"
+              defaultValue=""
               id="user-password"
               placeholder="Enter a password"
               type={showPassword ? "text" : "password"}
@@ -157,6 +160,7 @@ export function UsersForm({
             <Input
               aria-invalid={Boolean(errors.confirmPassword)}
               className="px-10"
+              defaultValue=""
               id="user-confirm-password"
               placeholder="Confirm the password"
               type={showConfirmPassword ? "text" : "password"}
@@ -250,7 +254,7 @@ export function UsersForm({
             disabled
             id="edit-user-name"
             readOnly
-            value={selectedUserName}
+            value={selectedUserName ?? ""}
           />
         </div>
       </div>
@@ -267,7 +271,7 @@ export function UsersForm({
             id="edit-user-email"
             readOnly
             type="email"
-            value={selectedUserEmail}
+            value={selectedUserEmail ?? ""}
           />
         </div>
       </div>
@@ -334,6 +338,7 @@ export function UsersForm({
                 <Input
                   aria-invalid={Boolean(errors.password)}
                   className="px-10"
+                  defaultValue=""
                   id="edit-user-password"
                   placeholder="Leave blank to keep the current password"
                   type={showEditPassword ? "text" : "password"}
@@ -375,6 +380,7 @@ export function UsersForm({
                 <Input
                   aria-invalid={Boolean(errors.confirmPassword)}
                   className="px-10"
+                  defaultValue=""
                   id="edit-user-confirm-password"
                   placeholder="Confirm the new password"
                   type={showEditConfirmPassword ? "text" : "password"}
@@ -429,7 +435,7 @@ export function UsersForm({
           disabled
           id="edit-user-created-at"
           readOnly
-          value={selectedUserCreatedAt}
+          value={selectedUserCreatedAt ?? ""}
         />
       </div>
 

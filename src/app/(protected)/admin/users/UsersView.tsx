@@ -29,6 +29,7 @@ export function UsersView({
   activeUsers,
   allowOpenEditSheet,
   allowOpenCreateSheet,
+  changeUserRole,
   createUser,
   createUserForm,
   deactivateUser,
@@ -47,6 +48,7 @@ export function UsersView({
   isEditSaveConfirmOpen,
   isOpenCreateSheetConfirmOpen,
   isReactivating,
+  isRoleUpdating,
   isSaveCreateConfirmOpen,
   isSheetOpen,
   isTableLoading,
@@ -57,6 +59,7 @@ export function UsersView({
   pendingEditSummary,
   pendingDeactivateUser,
   pendingReactivateUser,
+  pendingRoleUser,
   query,
   reactivateUser,
   requestSaveSheet,
@@ -68,7 +71,10 @@ export function UsersView({
   setPendingEditUser,
   setPendingDeactivateUser,
   setPendingReactivateUser,
+  selectedRole,
+  setPendingRoleUser,
   setQuery,
+  setSelectedRole,
   setStatusFilter,
   sheetMode,
   sheetUser,
@@ -240,6 +246,7 @@ export function UsersView({
         allowOpenEditSheet={allowOpenEditSheet}
         allowOpenCreateSheet={allowOpenCreateSheet}
         createUser={createUser}
+        changeUserRole={changeUserRole}
         deactivateUser={deactivateUser}
         discardSheetChanges={discardSheetChanges}
         isCreating={isCreating}
@@ -249,6 +256,7 @@ export function UsersView({
         isEditSaveConfirmOpen={isEditSaveConfirmOpen}
         isOpenCreateSheetConfirmOpen={isOpenCreateSheetConfirmOpen}
         isReactivating={isReactivating}
+        isRoleUpdating={isRoleUpdating}
         isSaveCreateConfirmOpen={isSaveCreateConfirmOpen}
         isUpdating={isUpdating}
         pendingCreateSummary={pendingCreateSummary}
@@ -256,7 +264,9 @@ export function UsersView({
         pendingEditSummary={pendingEditSummary}
         pendingDeactivateUser={pendingDeactivateUser}
         pendingReactivateUser={pendingReactivateUser}
+        pendingRoleUser={pendingRoleUser}
         reactivateUser={reactivateUser}
+        selectedRole={selectedRole}
         setIsDiscardSheetConfirmOpen={setIsDiscardSheetConfirmOpen}
         setIsOpenEditSheetConfirmOpen={setIsOpenEditSheetConfirmOpen}
         setIsEditSaveConfirmOpen={setIsEditSaveConfirmOpen}
@@ -265,6 +275,8 @@ export function UsersView({
         setPendingEditUser={setPendingEditUser}
         setPendingDeactivateUser={setPendingDeactivateUser}
         setPendingReactivateUser={setPendingReactivateUser}
+        setPendingRoleUser={setPendingRoleUser}
+        setSelectedRole={setSelectedRole}
         sheetUser={sheetUser}
         updateUser={updateUser}
       />

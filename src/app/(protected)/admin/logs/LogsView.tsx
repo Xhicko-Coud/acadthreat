@@ -1,7 +1,12 @@
+import { FlaskConical } from "lucide-react";
+
 import { AdminActionSheet } from "@/components/admin/AdminActionSheet";
 import { FilterDropdownMenu } from "@/components/admin/FilterDropdownMenu";
+import { tableHeaderButtonClassName } from "@/components/admin/tableHeaderButtonStyles";
+import { Button } from "@/components/ui/button";
 
 import { LogsDetails } from "./LogsDetails";
+import { LogsProofSeedDialog } from "./LogsProofSeedDialog";
 import { LogsTable } from "./LogsTable";
 import {
   formatLogOutcomeLabel,
@@ -14,16 +19,27 @@ import type { useLogsLogic } from "./LogsLogic";
 type LogsViewProps = ReturnType<typeof useLogsLogic>;
 
 export function LogsView({
+  canSeedProofLogs,
   capabilities,
+  closeProofSeedDialog,
+  confirmSeedProofLog,
   eventTypeFilter,
   eventTypeOptions,
   handleDetailsOpenChange,
   getEventActions,
   isDetailsOpen,
+  isProofSeedDialogOpen,
+  isSeedingProofLog,
   isTableLoading,
   normalizedEvents,
+  openProofSeedDialog,
   outcomeFilter,
   selectedEvent,
+  selectedProofLogCount,
+  selectedProofProvider,
+  selectedProofProviderLabel,
+  selectProofLogCount,
+  selectProofProvider,
   setEventTypeFilter,
   setOutcomeFilter,
   setSeverityFilter,
@@ -50,91 +66,105 @@ export function LogsView({
 
       <LogsTable
         actions={
-          <FilterDropdownMenu
-            groups={[
-              {
-                key: "sourceType",
-                label: "Source",
-                onSelect: (value) =>
-                  setSourceTypeFilter(
-                    value as "all" | "authentication" | "firewall",
-                  ),
-                options: [
-                  { label: "All sources", value: "all" },
-                  { label: "Authentication", value: "authentication" },
-                  { label: "Firewall", value: "firewall" },
-                ],
-                value: sourceTypeFilter,
-                valueLabel:
-                  sourceTypeFilter === "all"
-                    ? "All sources"
-                    : formatLogSourceTypeLabel(sourceTypeFilter),
-              },
-              {
-                key: "eventType",
-                label: "Event Type",
-                onSelect: setEventTypeFilter,
-                options: [
-                  { label: "All event types", value: "all" },
-                  ...eventTypeOptions,
-                ],
-                value: eventTypeFilter,
-                valueLabel:
-                  eventTypeFilter === "all"
-                    ? "All event types"
-                    : formatNormalizedEventTypeLabel(eventTypeFilter),
-              },
-              {
-                key: "severity",
-                label: "Severity",
-                onSelect: (value) =>
-                  setSeverityFilter(
-                    value as "all" | "low" | "medium" | "high" | "critical",
-                  ),
-                options: [
-                  { label: "All severities", value: "all" },
-                  { label: "Low", value: "low" },
-                  { label: "Medium", value: "medium" },
-                  { label: "High", value: "high" },
-                  { label: "Critical", value: "critical" },
-                ],
-                value: severityFilter,
-                valueLabel:
-                  severityFilter === "all"
-                    ? "All severities"
-                    : formatNormalizedEventSeverityLabel(severityFilter),
-              },
-              {
-                key: "outcome",
-                label: "Outcome",
-                onSelect: (value) =>
-                  setOutcomeFilter(
-                    value as
-                      | "all"
-                      | "allowed"
-                      | "blocked"
-                      | "denied"
-                      | "failure"
-                      | "locked"
-                      | "success",
-                  ),
-                options: [
-                  { label: "All outcomes", value: "all" },
-                  { label: "Success", value: "success" },
-                  { label: "Failure", value: "failure" },
-                  { label: "Allowed", value: "allowed" },
-                  { label: "Blocked", value: "blocked" },
-                  { label: "Denied", value: "denied" },
-                  { label: "Locked", value: "locked" },
-                ],
-                value: outcomeFilter,
-                valueLabel:
-                  outcomeFilter === "all"
-                    ? "All outcomes"
-                    : formatLogOutcomeLabel(outcomeFilter),
-              },
-            ]}
-          />
+          <>
+            {canSeedProofLogs ? (
+              <Button
+                className={tableHeaderButtonClassName}
+                disabled={isSeedingProofLog}
+                onClick={openProofSeedDialog}
+                size="lg"
+                type="button"
+              >
+                <FlaskConical className="size-4" />
+                Seed proof log
+              </Button>
+            ) : null}
+            <FilterDropdownMenu
+              groups={[
+                {
+                  key: "sourceType",
+                  label: "Source",
+                  onSelect: (value) =>
+                    setSourceTypeFilter(
+                      value as "all" | "authentication" | "firewall",
+                    ),
+                  options: [
+                    { label: "All sources", value: "all" },
+                    { label: "Authentication", value: "authentication" },
+                    { label: "Firewall", value: "firewall" },
+                  ],
+                  value: sourceTypeFilter,
+                  valueLabel:
+                    sourceTypeFilter === "all"
+                      ? "All sources"
+                      : formatLogSourceTypeLabel(sourceTypeFilter),
+                },
+                {
+                  key: "eventType",
+                  label: "Event Type",
+                  onSelect: setEventTypeFilter,
+                  options: [
+                    { label: "All event types", value: "all" },
+                    ...eventTypeOptions,
+                  ],
+                  value: eventTypeFilter,
+                  valueLabel:
+                    eventTypeFilter === "all"
+                      ? "All event types"
+                      : formatNormalizedEventTypeLabel(eventTypeFilter),
+                },
+                {
+                  key: "severity",
+                  label: "Severity",
+                  onSelect: (value) =>
+                    setSeverityFilter(
+                      value as "all" | "low" | "medium" | "high" | "critical",
+                    ),
+                  options: [
+                    { label: "All severities", value: "all" },
+                    { label: "Low", value: "low" },
+                    { label: "Medium", value: "medium" },
+                    { label: "High", value: "high" },
+                    { label: "Critical", value: "critical" },
+                  ],
+                  value: severityFilter,
+                  valueLabel:
+                    severityFilter === "all"
+                      ? "All severities"
+                      : formatNormalizedEventSeverityLabel(severityFilter),
+                },
+                {
+                  key: "outcome",
+                  label: "Outcome",
+                  onSelect: (value) =>
+                    setOutcomeFilter(
+                      value as
+                        | "all"
+                        | "allowed"
+                        | "blocked"
+                        | "denied"
+                        | "failure"
+                        | "locked"
+                        | "success",
+                    ),
+                  options: [
+                    { label: "All outcomes", value: "all" },
+                    { label: "Success", value: "success" },
+                    { label: "Failure", value: "failure" },
+                    { label: "Allowed", value: "allowed" },
+                    { label: "Blocked", value: "blocked" },
+                    { label: "Denied", value: "denied" },
+                    { label: "Locked", value: "locked" },
+                  ],
+                  value: outcomeFilter,
+                  valueLabel:
+                    outcomeFilter === "all"
+                      ? "All outcomes"
+                      : formatLogOutcomeLabel(outcomeFilter),
+                },
+              ]}
+            />
+          </>
         }
         data={normalizedEvents}
         description={
@@ -159,6 +189,25 @@ export function LogsView({
       >
         <LogsDetails event={selectedEvent} />
       </AdminActionSheet>
+
+      <LogsProofSeedDialog
+        isLoading={isSeedingProofLog}
+        onConfirm={confirmSeedProofLog}
+        onOpenChange={(open) => {
+          if (open) {
+            openProofSeedDialog();
+            return;
+          }
+
+          closeProofSeedDialog();
+        }}
+        onSelectCount={selectProofLogCount}
+        onSelectProvider={selectProofProvider}
+        open={isProofSeedDialogOpen}
+        selectedCount={selectedProofLogCount}
+        selectedProvider={selectedProofProvider}
+        selectedProviderLabel={selectedProofProviderLabel}
+      />
     </div>
   );
 }

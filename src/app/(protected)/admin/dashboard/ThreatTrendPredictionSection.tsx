@@ -9,36 +9,72 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import type {
+  DashboardActivityRange,
   DashboardPriorityTrendPoint,
   DashboardTrendPrediction,
   DashboardTrendPredictionStatus,
+} from "./DashboardLogic";
+import {
+  DASHBOARD_RANGE_OPTIONS,
+  formatDashboardRangeLabel,
 } from "./DashboardLogic";
 import { ThreatPredictionChart } from "./ThreatPredictionChart";
 
 type ThreatTrendPredictionSectionProps = {
   isLoading: boolean;
+  onRangeChange: (range: DashboardActivityRange) => void;
   prediction: DashboardTrendPrediction | null;
+  range: DashboardActivityRange;
   status: DashboardTrendPredictionStatus;
 };
 
 export function ThreatTrendPredictionSection({
   isLoading,
+  onRangeChange,
   prediction,
+  range,
   status,
 }: ThreatTrendPredictionSectionProps) {
+  const rangeLabel = formatDashboardRangeLabel(range);
+
   return (
     <section className="grid gap-4">
       <Card className="min-w-0 rounded-lg border border-primary/10 bg-white py-0 shadow-sm">
-        <CardHeader className="px-4 py-4 sm:px-5">
-          <CardTitle className="text-base font-semibold text-primary">
-            Threat trend prediction
-          </CardTitle>
-          <CardDescription className="text-sm leading-6 text-primary/70">
-            Estimated threat activity direction based on recent generated
-            threat events.
-          </CardDescription>
+        <CardHeader className="gap-4 px-4 py-4 sm:px-5 md:flex-row md:items-start md:justify-between">
+          <div>
+            <CardTitle className="text-base font-semibold text-primary">
+              Threat trend prediction
+            </CardTitle>
+            <CardDescription className="text-sm leading-6 text-primary/70">
+              Estimated threat activity direction based on {rangeLabel.toLowerCase()}.
+            </CardDescription>
+          </div>
+          <Select
+            onValueChange={(value) =>
+              onRangeChange(Number(value) as DashboardActivityRange)
+            }
+            value={String(range)}
+          >
+            <SelectTrigger className="h-9 w-full md:w-44">
+              <SelectValue placeholder="Select range" />
+            </SelectTrigger>
+            <SelectContent>
+              {DASHBOARD_RANGE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={String(option.value)}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent className="px-4 pb-5 sm:px-5">
           {isLoading ? (
@@ -227,7 +263,8 @@ function PriorityTrendSummary({
           Priority trend summary
         </h3>
         <p className="mt-1 text-sm leading-6 text-primary/70">
-          Current seven-day counts compared with the previous seven days.
+          Current selected-window counts compared with the previous matching
+          window.
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">

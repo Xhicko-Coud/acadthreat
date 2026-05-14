@@ -7,6 +7,7 @@ import {
   DataTableRowActions,
   type RowAction,
 } from "@/components/admin/DataTableRowActions";
+import { TableCellText } from "@/components/admin/TableCellText";
 
 import {
   formatIndicatorSeverityLabel,
@@ -15,8 +16,6 @@ import {
   formatIndicatorProviderLabel,
   type IndicatorRecord,
 } from "./IndicatorsLogic";
-
-const MAX_VALUE_DISPLAY_LENGTH = 50;
 
 export function IndicatorsTable({
   actions,
@@ -44,22 +43,11 @@ export function IndicatorsTable({
     {
       accessorKey: "value",
       header: "Value",
-      cell: ({ row }) => {
-        const value = row.original.value;
-        const displayValue =
-          value.length > MAX_VALUE_DISPLAY_LENGTH
-            ? `${value.slice(0, MAX_VALUE_DISPLAY_LENGTH)}...`
-            : value;
-
-        return (
-          <span
-            className="block max-w-[24rem] truncate font-medium text-foreground"
-            title={value}
-          >
-            {displayValue}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <TableCellText className="font-medium text-foreground">
+          {row.original.value}
+        </TableCellText>
+      ),
     },
     {
       accessorKey: "type",
@@ -134,7 +122,9 @@ export function IndicatorsTable({
       accessorKey: "source",
       header: "Source",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.source || "-"}</span>
+        <TableCellText className="text-muted-foreground">
+          {row.original.source}
+        </TableCellText>
       ),
     },
     {

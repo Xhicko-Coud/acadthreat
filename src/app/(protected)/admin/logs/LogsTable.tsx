@@ -7,6 +7,7 @@ import {
   DataTableRowActions,
   type RowAction,
 } from "@/components/admin/DataTableRowActions";
+import { TableCellText } from "@/components/admin/TableCellText";
 import { Badge } from "@/components/ui/badge";
 
 import {
@@ -44,53 +45,63 @@ export function LogsTable({
       accessorKey: "sourceType",
       header: "Source",
       cell: ({ row }) => (
-        <span className="font-medium text-foreground">
+        <TableCellText className="font-medium text-foreground">
           {formatLogSourceTypeLabel(row.original.sourceType)}
-        </span>
+        </TableCellText>
       ),
     },
     {
       accessorKey: "eventType",
       header: "Event Type",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
+        <TableCellText className="text-muted-foreground">
           {formatNormalizedEventTypeLabel(row.original.eventType)}
-        </span>
+        </TableCellText>
       ),
     },
     {
       accessorKey: "actor",
       header: "Actor",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.actor || "-"}</span>
+        <TableCellText className="text-muted-foreground">
+          {row.original.actor}
+        </TableCellText>
       ),
     },
     {
       accessorKey: "srcIp",
       header: "Source IP",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.srcIp || "-"}</span>
+        <TableCellText className="text-muted-foreground">
+          {row.original.srcIp}
+        </TableCellText>
       ),
     },
     {
       accessorKey: "destIp",
       header: "Destination IP",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.destIp || "-"}</span>
+        <TableCellText className="text-muted-foreground">
+          {row.original.destIp}
+        </TableCellText>
       ),
     },
     {
       accessorKey: "action",
       header: "Action",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.action || "-"}</span>
+        <TableCellText className="text-muted-foreground">
+          {row.original.action}
+        </TableCellText>
       ),
     },
     {
       accessorKey: "outcome",
       header: "Outcome",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.outcome || "-"}</span>
+        <TableCellText className="text-muted-foreground">
+          {row.original.outcome}
+        </TableCellText>
       ),
     },
     {

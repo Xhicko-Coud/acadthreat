@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -28,6 +28,24 @@ export type ThreatIndicatorStatus =
   | "false_positive";
 
 export type IndicatorProviderFilter = "all" | "urlhaus" | "internal";
+export type ThreatFeedSyncProvider =
+  | "urlhaus"
+  | "abuseipdb"
+  | "otx"
+  | "phishtank"
+  | "misp";
+export type ThreatFeedSyncLimit = 50 | 100 | 250;
+
+const THREAT_FEED_SYNC_PROVIDER_LABELS: Record<
+  ThreatFeedSyncProvider,
+  string
+> = {
+  abuseipdb: "AbuseIPDB",
+  misp: "MISP",
+  otx: "AlienVault OTX",
+  phishtank: "PhishTank",
+  urlhaus: "URLHaus",
+};
 
 export type IndicatorRecord = {
   id: string;
@@ -97,8 +115,17 @@ export function formatIndicatorProviderLabel(provider: string | null) {
   return "Internal/Demo";
 }
 
+export function formatThreatFeedSyncProviderLabel(
+  provider: ThreatFeedSyncProvider,
+) {
+  return THREAT_FEED_SYNC_PROVIDER_LABELS[provider];
+}
+
 export function useIndicatorsLogic() {
   const { showNotification } = useNotifications();
+  const runThreatFeedSyncOperation = useAction(
+    api.threatFeeds.operations.runThreatFeedSyncOperation,
+  );
   const [statusFilter, setStatusFilter] = useState<ThreatIndicatorStatus | "all">(
     "all",
   );
@@ -118,6 +145,12 @@ export function useIndicatorsLogic() {
     [],
   );
   const [lastAlertKey, setLastAlertKey] = useState<string | null>(null);
+  const [selectedSyncProvider, setSelectedSyncProvider] =
+    useState<ThreatFeedSyncProvider>("urlhaus");
+  const [selectedSyncLimit, setSelectedSyncLimit] =
+    useState<ThreatFeedSyncLimit>(50);
+  const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const queryResult = useQuery(api.queries.threatIndicators.listThreatIndicators, {
     provider: providerFilter === "all" ? undefined : providerFilter,
@@ -221,6 +254,61 @@ export function useIndicatorsLogic() {
     }
   }
 
+  function openSyncDialog() {
+    setSelectedSyncProvider("urlhaus");
+    setIsSyncDialogOpen(true);
+  }
+
+  function closeSyncDialog() {
+    if (!isSyncing) {
+      setIsSyncDialogOpen(false);
+      setSelectedSyncProvider("urlhaus");
+    }
+  }
+
+  function selectSyncProvider(provider: ThreatFeedSyncProvider) {
+    setSelectedSyncProvider(provider);
+  }
+
+  function selectSyncLimit(limit: ThreatFeedSyncLimit) {
+    setSelectedSyncLimit(limit);
+  }
+
+  async function confirmThreatFeedSync() {
+    const providerLabel =
+      formatThreatFeedSyncProviderLabel(selectedSyncProvider);
+
+    if (selectedSyncProvider !== "urlhaus") {
+      showNotification({
+        description: `${providerLabel} is not enabled in this MVP.`,
+        title: "Provider not enabled",
+        variant: "info",
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+
+    try {
+      const result = await runThreatFeedSyncOperation({
+        limit: selectedSyncLimit,
+        provider: "urlhaus",
+      });
+
+      showNotification(getThreatFeedSyncNotification(result, providerLabel));
+
+      if (result.status === "completed") {
+        setIsSyncDialogOpen(false);
+      }
+    } catch {
+      showNotification(
+        getThreatFeedSyncNotification({ status: "failed" }, providerLabel),
+      );
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
   function getIndicatorActions(indicator: IndicatorRecord): RowAction[] {
     return [
       {
@@ -232,22 +320,97 @@ export function useIndicatorsLogic() {
   }
 
   return {
+    closeSyncDialog,
+    confirmThreatFeedSync,
     getIndicatorActions,
     handleSheetOpenChange,
     hasAccess,
     indicators,
     isInitialLoading,
     isSheetOpen,
+    isSyncDialogOpen,
+    isSyncing,
     isTableLoading,
+    openSyncDialog,
+    selectSyncLimit,
+    selectSyncProvider,
     setSeverityFilter,
     setProviderFilter,
     setStatusFilter,
     setTypeFilter,
+    selectedSyncProvider,
+    selectedSyncLimit,
+    selectedSyncProviderLabel:
+      formatThreatFeedSyncProviderLabel(selectedSyncProvider),
     severityFilter,
     providerFilter,
     sheetIndicator,
     sheetMode,
     statusFilter,
     typeFilter,
+  };
+}
+
+function getThreatFeedSyncNotification(
+  result: {
+    counts?: {
+      fetched: number;
+      inserted: number;
+      updated: number;
+    };
+    reason?: string;
+    status: string;
+  },
+  providerLabel: string,
+) {
+  if (result.status === "completed") {
+    const counts = result.counts ?? { fetched: 0, inserted: 0, updated: 0 };
+
+    return {
+      description: `${providerLabel} sync completed: ${counts.fetched} fetched, ${counts.inserted} inserted, ${counts.updated} updated.`,
+      title: "Sync completed",
+      variant: "success" as const,
+    };
+  }
+
+  if (result.status === "provider_not_enabled") {
+    return {
+      description: `${providerLabel} is not enabled in this MVP.`,
+      title: "Provider not enabled",
+      variant: "info" as const,
+    };
+  }
+
+  if (
+    result.status === "provider_skipped" &&
+    result.reason === "missing_auth_key"
+  ) {
+    return {
+      description: `${providerLabel} sync is not configured. Ask an administrator to set the provider key.`,
+      title: "Provider not configured",
+      variant: "error" as const,
+    };
+  }
+
+  if (result.status === "forbidden") {
+    return {
+      description: "Your account cannot run threat feed sync.",
+      title: "Action not allowed",
+      variant: "error" as const,
+    };
+  }
+
+  if (result.status === "unauthenticated") {
+    return {
+      description: "Please sign in to run this operation.",
+      title: "Sign in required",
+      variant: "error" as const,
+    };
+  }
+
+  return {
+    description: "Threat feed sync failed. Please try again later.",
+    title: "Sync failed",
+    variant: "error" as const,
   };
 }

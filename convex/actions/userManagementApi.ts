@@ -8,9 +8,19 @@ import type { DataModel } from "@convex/_generated/dataModel";
 import { action } from "@convex/_generated/server";
 import { createAuth } from "@convex/auth";
 import { authComponent } from "@convex/auth";
-import { USER_PROFILE_STATUSES } from "@convex/auth/authorization";
+import {
+  USER_PROFILE_ROLES,
+  USER_PROFILE_STATUSES,
+} from "@convex/auth/authorization";
 
 type UserManagementActionCtx = GenericActionCtx<DataModel>;
+type PasswordManagementAuth = {
+  api?: {
+    setUserPassword?: (args: {
+      body: { newPassword: string; userId: string };
+    }) => Promise<unknown>;
+  };
+};
 
 export const deactivateUser = action({
   args: {
@@ -67,10 +77,6 @@ export const updateUserRole = action({
     }
 
     const normalizedPassword = args.password?.trim() ?? "";
-    if (args.role === "admin") {
-      return { status: "unsupported_role_creation" } as const;
-    }
-
     const targetProfile = await ctx.runQuery(
       internal.mutations.userManagement.getManagedUserProfile,
       { userId: normalizedTargetUserId },
@@ -80,14 +86,34 @@ export const updateUserRole = action({
       return { status: "not_found" } as const;
     }
 
+    if (
+      targetProfile.userId === actor._id &&
+      targetProfile.role === USER_PROFILE_ROLES.admin &&
+      args.role !== USER_PROFILE_ROLES.admin
+    ) {
+      return { status: "last_admin_blocked" } as const;
+    }
+
+    if (
+      targetProfile.role === USER_PROFILE_ROLES.admin &&
+      args.role !== USER_PROFILE_ROLES.admin
+    ) {
+      const activeAdminCount = await ctx.runQuery(
+        internal.mutations.userManagement.countActiveAdminProfiles,
+        {},
+      );
+
+      if (activeAdminCount <= 1) {
+        return { status: "last_admin_blocked" } as const;
+      }
+    }
+
     if (normalizedPassword) {
-      const auth = createAuth(ctx) as {
-        api: {
-          setUserPassword: (args: {
-            body: { newPassword: string; userId: string };
-          }) => Promise<unknown>;
-        };
-      };
+      const auth = createAuth(ctx) as unknown as PasswordManagementAuth;
+
+      if (!auth.api?.setUserPassword) {
+        return { status: "failed" } as const;
+      }
 
       try {
         await auth.api.setUserPassword({
@@ -115,16 +141,20 @@ export const updateUserRole = action({
       },
     );
 
-    if (result.status === "success") {
-      return { status: "success" } as const;
+    if (result.status === "updated") {
+      return {
+        role: result.role,
+        status: "updated",
+        userId: result.userId,
+      } as const;
     }
 
     if (result.status === "unchanged") {
-      return { status: "unchanged" } as const;
-    }
-
-    if (result.status === "unsupported_role_creation") {
-      return { status: "unsupported_role_creation" } as const;
+      return {
+        role: result.role,
+        status: "unchanged",
+        userId: result.userId,
+      } as const;
     }
 
     if (result.status === "not_found") {
@@ -173,6 +203,20 @@ async function updateManagedUserStatus(
 
   if (!targetProfile) {
     return { status: "not_found" } as const;
+  }
+
+  if (
+    nextStatus === USER_PROFILE_STATUSES.inactive &&
+    targetProfile.role === USER_PROFILE_ROLES.admin
+  ) {
+    const activeAdminCount = await ctx.runQuery(
+      internal.mutations.userManagement.countActiveAdminProfiles,
+      {},
+    );
+
+    if (activeAdminCount <= 1) {
+      return { status: "last_admin_blocked" } as const;
+    }
   }
 
   const result = await ctx.runMutation(

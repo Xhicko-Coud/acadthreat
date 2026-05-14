@@ -1,5 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import { query, type QueryCtx } from "@convex/_generated/server";
+import { v } from "convex/values";
 import {
   USER_PROFILE_ROLES,
   getCurrentAuthUser,
@@ -16,7 +17,11 @@ import {
 import { THREAT_INDICATOR_STATUSES } from "@convex/threatIndicators/helpers";
 
 const RECENT_HIGH_PRIORITY_LIMIT = 10;
+const HOUR_IN_MS = 60 * 60 * 1000;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_THREAT_ACTIVITY_RANGE_DAYS = 7;
+const MIN_THREAT_ACTIVITY_RANGE_DAYS = 1;
+const MAX_THREAT_ACTIVITY_RANGE_DAYS = 28;
 
 const DASHBOARD_READ_ROLES = [
   USER_PROFILE_ROLES.admin,
@@ -44,8 +49,10 @@ const SOURCE_TYPE_DISTRIBUTION_ORDER = [
 ] as const;
 
 export const getDashboardOverview = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    threatActivityRangeDays: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     const access = await getDashboardReadContext(ctx);
 
     if (access.status !== "success") {
@@ -55,7 +62,14 @@ export const getDashboardOverview = query({
     try {
       const now = Date.now();
       const todayStart = getUtcDayStart(now);
-      const sevenDayStart = todayStart - 6 * DAY_IN_MS;
+      const currentHourStart = getUtcHourStart(now);
+      const threatActivityRangeDays = normalizeThreatActivityRangeDays(
+        args.threatActivityRangeDays,
+      );
+      const threatTrendStart =
+        threatActivityRangeDays === 1
+          ? currentHourStart - 23 * HOUR_IN_MS
+          : todayStart - (threatActivityRangeDays - 1) * DAY_IN_MS;
 
       const [activeIndicators, normalizedEvents, rawLogs, threatEvents] =
         await Promise.all([
@@ -69,8 +83,9 @@ export const getDashboardOverview = query({
         priorityDistribution: buildPriorityDistribution(threatEvents),
         recentHighPriorityThreats:
           buildRecentHighPriorityThreats(threatEvents),
-        sevenDayThreatTrend: buildSevenDayThreatTrend({
-          startAt: sevenDayStart,
+        sevenDayThreatTrend: buildThreatActivityTrend({
+          rangeDays: threatActivityRangeDays,
+          startAt: threatTrendStart,
           threatEvents,
         }),
         sourceTypeDistribution: buildSourceTypeDistribution(threatEvents),
@@ -183,14 +198,31 @@ function buildSourceTypeDistribution(threatEvents: Doc<"threatEvents">[]) {
   }));
 }
 
-function buildSevenDayThreatTrend({
+function buildThreatActivityTrend({
+  rangeDays,
   startAt,
   threatEvents,
 }: {
+  rangeDays: number;
   startAt: number;
   threatEvents: Doc<"threatEvents">[];
 }) {
-  return Array.from({ length: 7 }, (_, index) => {
+  if (rangeDays === 1) {
+    return Array.from({ length: 24 }, (_, index) => {
+      const hourStart = startAt + index * HOUR_IN_MS;
+      const hourEnd = hourStart + HOUR_IN_MS;
+
+      return {
+        count: threatEvents.filter(
+          (event) =>
+            event.detectedAt >= hourStart && event.detectedAt < hourEnd,
+        ).length,
+        date: formatUtcHourLabel(hourStart),
+      };
+    });
+  }
+
+  return Array.from({ length: rangeDays }, (_, index) => {
     const dayStart = startAt + index * DAY_IN_MS;
     const dayEnd = dayStart + DAY_IN_MS;
 
@@ -201,6 +233,17 @@ function buildSevenDayThreatTrend({
       date: formatUtcDateLabel(dayStart),
     };
   });
+}
+
+function normalizeThreatActivityRangeDays(rangeDays: number | undefined) {
+  if (typeof rangeDays !== "number" || !Number.isFinite(rangeDays)) {
+    return DEFAULT_THREAT_ACTIVITY_RANGE_DAYS;
+  }
+
+  return Math.min(
+    MAX_THREAT_ACTIVITY_RANGE_DAYS,
+    Math.max(MIN_THREAT_ACTIVITY_RANGE_DAYS, Math.trunc(rangeDays)),
+  );
 }
 
 function buildRecentHighPriorityThreats(
@@ -268,6 +311,21 @@ function getUtcDayStart(timestamp: number) {
   );
 }
 
+function getUtcHourStart(timestamp: number) {
+  const date = new Date(timestamp);
+
+  return Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    date.getUTCHours(),
+  );
+}
+
 function formatUtcDateLabel(timestamp: number) {
   return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+function formatUtcHourLabel(timestamp: number) {
+  return `${new Date(timestamp).toISOString().slice(11, 16)} UTC`;
 }
